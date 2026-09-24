@@ -129,4 +129,4 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 from mongoengine import connect
-connect('neurai_db', host='mongodb://localhost:27017')
+connect('neurai_db', host='mongodb://192.168.0.34:27017')
