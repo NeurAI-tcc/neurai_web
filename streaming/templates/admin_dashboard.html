@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neurai | Monitoramento</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; color: #17212b; background: #f4f7f9; }
+    main { max-width: 960px; margin: auto; }
+    section { background: white; border: 1px solid #d8e1e8; padding: 1.25rem; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; } th, td { text-align: left; padding: .75rem; border-bottom: 1px solid #e5eaee; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Painel de monitoramento</h1>
+    <p>Total de responsáveis: <strong>{{ total_clientes }}</strong></p>
+    <section>
+      <table><thead><tr><th>Nome</th><th>E-mail</th><th>Câmera</th></tr></thead><tbody>
+      {% for responsavel in lista_responsaveis %}<tr><td>{{ responsavel.nome_completo }}</td><td>{{ responsavel.email }}</td><td>{{ responsavel.ip_camera|default:"Não configurada" }}</td></tr>{% empty %}<tr><td colspan="3">Nenhum responsável cadastrado.</td></tr>{% endfor %}
+      </tbody></table>
+    </section>
+  </main>
+</body>
+</html>

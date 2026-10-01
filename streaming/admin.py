@@ -1,3 +1,4 @@
 from django.contrib import admin
+from .models import Usuario, TokenAcesso, Alerta
 
-# Register your models here.
+admin.site.register((Usuario, TokenAcesso, Alerta))

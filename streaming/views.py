@@ -3,6 +3,7 @@ import secrets
 from functools import wraps
 
 from django.contrib.auth.hashers import make_password
+from django.db import IntegrityError
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -72,10 +73,8 @@ def cadastro_api(request):
         usuario.save()
     except (KeyError, ValueError):
         return JsonResponse({'erro': 'Dados de cadastro inválidos'}, status=400)
-    except Exception as exc:
-        if 'UNIQUE constraint' in str(exc):
-            return JsonResponse({'erro': 'E-mail já cadastrado'}, status=409)
-        raise
+    except IntegrityError:
+        return JsonResponse({'erro': 'E-mail já cadastrado'}, status=409)
     return JsonResponse(serializar_usuario(usuario), status=201)
 
 
