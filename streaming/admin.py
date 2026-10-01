@@ -1,4 +1,1 @@
-from django.contrib import admin
-from .models import Usuario, TokenAcesso, Alerta
-
-admin.site.register((Usuario, TokenAcesso, Alerta))
+"""MongoEngine documents are managed through MongoDB tools, not Django Admin."""

@@ -24,8 +24,8 @@ class MonitoramentoConsumer(AsyncWebsocketConsumer):
     def usuario_por_token(self):
         chave = self.scope.get('query_string', b'').decode().removeprefix('token=').split('&')[0]
         try:
-            return TokenAcesso.objects.select_related('usuario').get(chave=chave).usuario
-        except TokenAcesso.DoesNotExist:
+            return TokenAcesso.objects.get(chave=chave).usuario
+        except (TokenAcesso.DoesNotExist, TokenAcesso.MultipleObjectsReturned):
             return None
 
 class AlertaConsumer(AsyncWebsocketConsumer):
@@ -49,6 +49,6 @@ class AlertaConsumer(AsyncWebsocketConsumer):
     def usuario_por_token(self):
         chave = self.scope.get('query_string', b'').decode().removeprefix('token=').split('&')[0]
         try:
-            return TokenAcesso.objects.select_related('usuario').get(chave=chave).usuario
-        except TokenAcesso.DoesNotExist:
+            return TokenAcesso.objects.get(chave=chave).usuario
+        except (TokenAcesso.DoesNotExist, TokenAcesso.MultipleObjectsReturned):
             return None
