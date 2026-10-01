@@ -22,6 +22,21 @@ def serializar_usuario(usuario):
     }
 
 
+def serializar_rastreamento(usuario):
+    camera = Camera.objects(responsavel=usuario).first()
+    if camera is None:
+        return {'camera': None, 'perfil_carregado': usuario.perfil_crianca is not None}
+    return {
+        'camera': {
+            'id': str(camera.id),
+            'endereco_ip': camera.endereco_ip,
+            'nome_camara': camera.nome_camara,
+        },
+        'perfil_carregado': usuario.perfil_crianca is not None,
+        'websocket': f'/ws/camera/{camera.id}/',
+    }
+
+
 def ler_json(request):
     try:
         return json.loads(request.body or '{}')
@@ -59,7 +74,11 @@ def login_api(request):
     else:
         token.chave = secrets.token_urlsafe(32)
     token.save()
-    return JsonResponse({'token': token.chave, 'usuario': serializar_usuario(usuario)})
+    return JsonResponse({
+        'token': token.chave,
+        'usuario': serializar_usuario(usuario),
+        'rastreamento': serializar_rastreamento(usuario),
+    })
 
 
 @csrf_exempt

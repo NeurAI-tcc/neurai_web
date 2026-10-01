@@ -27,6 +27,7 @@ class MonitoramentoConsumer(AsyncWebsocketConsumer):
             self.camera_id,
             self.camera_ip,
             self.channel_layer,
+            self.usuario.id,
         )
         self.camera_stream.start()
 
