@@ -1,43 +1,106 @@
 import json
+import secrets
+from functools import wraps
+
+from django.contrib.auth.hashers import make_password
 from django.http import JsonResponse
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from django.views import View
 from django.shortcuts import render
-from .models import Usuario, Alerta
 
-# --- CONTROLLERS PARA O APLICATIVO FLUTTER (API REST) ---
+from .models import Usuario, TokenAcesso, Alerta
 
-class UsuarioPerfilAPI(View):
-    def get(self, request, usuario_id):
+
+def serializar_usuario(usuario):
+    return {
+        'id': usuario.id, 'nome_completo': usuario.nome_completo,
+        'email': usuario.email, 'tipo_usuario': usuario.tipo_usuario,
+        'ip_camera': usuario.ip_camera, 'perfil_crianca': usuario.perfil_crianca,
+    }
+
+
+def ler_json(request):
+    try:
+        return json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        raise ValueError('JSON inválido')
+
+
+def autenticado(view):
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        valor = request.headers.get('Authorization', '')
+        chave = valor.removeprefix('Bearer ').strip()
         try:
-            user = Usuario.objects.get(id=usuario_id)
-            dados = {
-                "id": str(user.id),
-                "nome_completo": user.nome_completo,
-                "email": user.email,
-                "tipo_usuario": user.tipo_usuario,
-                "perfil_crianca": user.perfil_crianca.to_mongo().to_dict() if user.perfil_crianca else None
-            }
-            return JsonResponse(dados, status=200)
-        except Usuario.DoesNotExist:
-            return JsonResponse({'erro': 'Usuário não encontrado'}, status=404)
+            request.usuario = TokenAcesso.objects.select_related('usuario').get(chave=chave).usuario
+        except TokenAcesso.DoesNotExist:
+            return JsonResponse({'erro': 'Token ausente ou inválido'}, status=401)
+        return view(request, *args, **kwargs)
+    return wrapper
 
-class AlertasAPI(View):
-    def get(self, request, responsavel_id):
-        alertas = Alerta.objects(responsavel=responsavel_id).order_by('-timestamp')
-        dados = [{"id": str(a.id), "tipo_crise": a.tipo_crise, "data": str(a.timestamp)} for a in alertas]
-        return JsonResponse(dados, safe=False)
 
-# --- CONTROLLERS PARA O PAINEL WEB (ADMIN) ---
+@csrf_exempt
+def login_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'erro': 'Método não permitido'}, status=405)
+    try:
+        dados = ler_json(request)
+        usuario = Usuario.objects.get(email=dados.get('email', '').lower())
+    except (ValueError, Usuario.DoesNotExist):
+        return JsonResponse({'erro': 'E-mail ou senha inválidos'}, status=401)
+    if not usuario.verificar_senha(dados.get('senha', '')):
+        return JsonResponse({'erro': 'E-mail ou senha inválidos'}, status=401)
+    token, _ = TokenAcesso.objects.update_or_create(
+        usuario=usuario, defaults={'chave': secrets.token_urlsafe(32)})
+    return JsonResponse({'token': token.chave, 'usuario': serializar_usuario(usuario)})
+
+
+@csrf_exempt
+def cadastro_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'erro': 'Método não permitido'}, status=405)
+    try:
+        dados = ler_json(request)
+        email = dados['email'].lower().strip()
+        if not dados.get('nome_completo') or len(dados.get('senha', '')) < 6:
+            raise ValueError('nome_completo e senha com no mínimo 6 caracteres são obrigatórios')
+        usuario = Usuario(nome_completo=dados['nome_completo'], email=email,
+                          ip_camera=dados.get('ip_camera'),
+                          perfil_crianca=dados.get('perfil_crianca'))
+        usuario.senha = make_password(dados['senha'])
+        usuario.save()
+    except (KeyError, ValueError):
+        return JsonResponse({'erro': 'Dados de cadastro inválidos'}, status=400)
+    except Exception as exc:
+        if 'UNIQUE constraint' in str(exc):
+            return JsonResponse({'erro': 'E-mail já cadastrado'}, status=409)
+        raise
+    return JsonResponse(serializar_usuario(usuario), status=201)
+
+
+@autenticado
+def perfil_api(request):
+    return JsonResponse(serializar_usuario(request.usuario))
+
+
+@autenticado
+def alertas_api(request):
+    alertas = Alerta.objects.filter(responsavel=request.usuario).order_by('-timestamp')[:100]
+    return JsonResponse([{'id': a.id, 'tipo_crise': a.tipo_crise,
+                          'timestamp': a.timestamp.isoformat(),
+                          'falso_positivo': a.falso_positivo,
+                          'detalhes': a.detalhes} for a in alertas], safe=False)
+
+
+@autenticado
+def camera_api(request):
+    return JsonResponse({'ip_camera': request.usuario.ip_camera,
+                         'websocket': f'/ws/camera/{request.usuario.id}/'})
+
 
 class DashboardAdminView(View):
     def get(self, request):
-        # Lógica para o painel de administrador na web
-        responsaveis = Usuario.objects(tipo_usuario='Responsavel')
-        total_responsaveis = responsaveis.count()
-        
-        contexto = {
-            'total_clientes': total_responsaveis,
-            'lista_responsaveis': responsaveis
-        }
-        # Retorna o template HTML (A View visual) do Django
-        return render(request, 'admin_dashboard.html', contexto)
+        responsaveis = Usuario.objects.filter(tipo_usuario='Responsavel').order_by('nome_completo')
+        return render(request, 'admin_dashboard.html', {'total_clientes': responsaveis.count(),
+                                                         'lista_responsaveis': responsaveis})

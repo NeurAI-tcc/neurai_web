@@ -16,7 +16,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from streaming import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/auth/cadastro/', views.cadastro_api),
+    path('api/auth/login/', views.login_api),
+    path('api/perfil/', views.perfil_api),
+    path('api/alertas/', views.alertas_api),
+    path('api/camera/', views.camera_api),
+    path('', views.DashboardAdminView.as_view(), name='dashboard'),
 ]

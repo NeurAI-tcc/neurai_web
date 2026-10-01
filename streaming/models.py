@@ -1,58 +1,36 @@
-from mongoengine import Document, EmbeddedDocument, StringField, EmailField, BooleanField, DateTimeField, EmbeddedDocumentField, ReferenceField, ListField, DictField
+from django.db import models
+from django.contrib.auth.hashers import check_password, make_password
 
-# 1. Transformamos a Criança em um EmbeddedDocument
-class Crianca(EmbeddedDocument):
-    nome_completo = StringField(required=True)
-    nome_social = StringField()
-    data_nascimento = DateTimeField()
-    sexo = StringField()
-    
-    # Informações Clínicas
-    diagnostico_principal = StringField()
-    nivel_suporte = StringField()
-    data_diagnostico = DateTimeField()
-    arquivo_laudo = StringField() 
-    alergias = ListField(StringField())
-    medicamentos = ListField(DictField()) 
-    possui_crises_epileticas = BooleanField(default=False)
-    frequencia_crises = StringField()
-    
-    # Perfil Comportamental
-    atividades_favoritas = ListField(StringField())
-    principais_gatilhos = ListField(StringField())
-    ajuda_acalmar = ListField(StringField())
-    forma_comunicacao = StringField()
-    
-    # Rotina Estruturada
-    rotina = DictField() 
-    seletividade_alimentar = BooleanField(default=False)
-    info_importantes = StringField()
-    
-    # Imagens para o InsightFace
-    fotos = DictField()
 
-# 2. O Usuário agora contém a Criança
-class Usuario(Document):
-    meta = {'collection': 'usuarios'}
-    tipo_usuario = StringField(choices=['Responsavel', 'Admin'], default='Responsavel')
-    nome_completo = StringField(required=True)
-    email = EmailField(required=True, unique=True)
-    senha = StringField(required=True)
-    ip_camera = StringField()
-    
-    # Dados financeiros visíveis apenas para o Admin
-    pagamento_conta = StringField() 
-    valor = StringField()
-    
-    # É aqui que a mágica acontece: o perfil da criança fica embutido no responsável.
-    # Se o usuário for Admin, basta não preencher este campo no momento de salvar.
-    perfil_crianca = EmbeddedDocumentField(Crianca)
+class Usuario(models.Model):
+    TIPO_USUARIO = [('Responsavel', 'Responsável'), ('Admin', 'Administrador')]
 
-# 3. Os alertas referenciam a conta do Usuário (Responsável)
-class Alerta(Document):
-    meta = {'collection': 'alertas'}
-    # Como a criança agora vive dentro do usuário, o alerta aponta para a conta principal
-    responsavel = ReferenceField(Usuario, required=True)
-    timestamp = DateTimeField(required=True)
-    tipo_crise = StringField(required=True)
-    falso_positivo = BooleanField(default=False)
+    tipo_usuario = models.CharField(max_length=20, choices=TIPO_USUARIO, default='Responsavel')
+    nome_completo = models.CharField(max_length=150)
+    email = models.EmailField(unique=True)
+    senha = models.CharField(max_length=128)
+    ip_camera = models.GenericIPAddressField(null=True, blank=True)
+    pagamento_conta = models.CharField(max_length=100, blank=True)
+    valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    perfil_crianca = models.JSONField(null=True, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    def definir_senha(self, senha):
+        self.senha = make_password(senha)
+
+    def verificar_senha(self, senha):
+        return check_password(senha, self.senha)
+
+
+class TokenAcesso(models.Model):
+    usuario = models.OneToOneField(Usuario, on_delete=models.CASCADE, related_name='token_acesso')
+    chave = models.CharField(max_length=64, unique=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+
+class Alerta(models.Model):
+    responsavel = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='alertas')
+    timestamp = models.DateTimeField()
+    tipo_crise = models.CharField(max_length=100)
+    falso_positivo = models.BooleanField(default=False)
+    detalhes = models.JSONField(default=dict, blank=True)

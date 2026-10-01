@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-4-7dge+af$_e-17fi)e7uv0+bd$ppmqn7)(qlv!ej_-)$ib^u)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -127,6 +127,3 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-from mongoengine import connect
-connect('Neurai', host='mongodb://192.168.0.34:27017')
