@@ -8,7 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views import View
 from django.shortcuts import render
 
-from .models import Usuario, TokenAcesso, Alerta
+from .models import Usuario, TokenAcesso, Alerta, Camera
 
 
 def serializar_usuario(usuario):
@@ -98,9 +98,55 @@ def alertas_api(request):
 
 
 @autenticado
+@csrf_exempt
 def camera_api(request):
-    return JsonResponse({'ip_camera': request.usuario.ip_camera,
-                         'websocket': f'/ws/camera/{request.usuario.id}/'})
+    if request.method == 'GET':
+        camera = Camera.objects(responsavel=request.usuario).first()
+        if camera is None:
+            return JsonResponse({'camera': None})
+        return JsonResponse({
+            'camera': {
+                'id': str(camera.id),
+                'endereco_ip': camera.endereco_ip,
+                'nome_camara': camera.nome_camara,
+                'localizacao': camera.localizacao,
+                'modelo': camera.modelo,
+            },
+            'websocket': f'/ws/camera/{camera.id}/',
+        })
+
+    if request.method != 'POST':
+        return JsonResponse({'erro': 'Método não permitido'}, status=405)
+    try:
+        dados = ler_json(request)
+        endereco_ip = dados['endereco_ip'].strip()
+        nome_camara = dados.get('nome_camara', 'Câmera principal').strip()
+        if not endereco_ip or not nome_camara:
+            raise ValueError
+    except (KeyError, AttributeError, ValueError):
+        return JsonResponse({'erro': 'endereco_ip e nome_camara são obrigatórios'}, status=400)
+
+    camera = Camera.objects(responsavel=request.usuario).first()
+    if camera is None:
+        camera = Camera(responsavel=request.usuario, endereco_ip=endereco_ip,
+                        nome_camara=nome_camara)
+    else:
+        camera.endereco_ip = endereco_ip
+        camera.nome_camara = nome_camara
+    camera.localizacao = dados.get('localizacao', camera.localizacao)
+    camera.modelo = dados.get('modelo', camera.modelo)
+    camera.save()
+
+    request.usuario.ip_camera = endereco_ip
+    request.usuario.save()
+    return JsonResponse({
+        'camera': {
+            'id': str(camera.id),
+            'endereco_ip': camera.endereco_ip,
+            'nome_camara': camera.nome_camara,
+        },
+        'websocket': f'/ws/camera/{camera.id}/',
+    }, status=201)
 
 
 class DashboardAdminView(View):
