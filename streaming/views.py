@@ -8,7 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views import View
 from django.shortcuts import render
 
-from .models import Usuario, TokenAcesso, Alerta, Camera
+from .models import Usuario, TokenAcesso, Alerta, Camera, Relatorio
 
 
 def serializar_usuario(usuario):
@@ -34,6 +34,31 @@ def serializar_rastreamento(usuario):
         },
         'perfil_carregado': usuario.perfil_crianca is not None,
         'websocket': f'/ws/camera/{camera.id}/',
+    }
+
+
+def contexto_admin():
+    usuarios = list(Usuario.objects.order_by('-criado_em'))
+    cameras = list(Camera.objects.order_by('-id'))
+    alertas = list(Alerta.objects.order_by('-timestamp'))
+    tokens = list(TokenAcesso.objects)
+    relatorios = list(Relatorio.objects.order_by('-data_geracao'))
+    perfis_completos = sum(1 for usuario in usuarios if usuario.perfil_crianca is not None)
+    receita = sum((usuario.valor or 0) for usuario in usuarios)
+    return {
+        'admin_name': 'Administrador',
+        'usuarios': usuarios,
+        'cameras': cameras,
+        'alertas': alertas,
+        'tokens': tokens,
+        'relatorios': relatorios,
+        'total_usuarios': len(usuarios),
+        'usuarios_ativos': len(tokens),
+        'total_cameras': len(cameras),
+        'perfis_completos': perfis_completos,
+        'perfis_pendentes': max(len(usuarios) - perfis_completos, 0),
+        'receita': receita,
+        'total_alertas': len(alertas),
     }
 
 
@@ -170,6 +195,31 @@ def camera_api(request):
 
 class DashboardAdminView(View):
     def get(self, request):
-        responsaveis = Usuario.objects(tipo_usuario='Responsavel').order_by('nome_completo')
-        return render(request, 'admin_dashboard.html', {'total_clientes': responsaveis.count(),
-                                                         'lista_responsaveis': responsaveis})
+        return render(request, 'dashboard.html', contexto_admin())
+
+
+class AdminTemplateView(View):
+    template_name = None
+
+    def get(self, request):
+        return render(request, self.template_name, contexto_admin())
+
+
+class UsuariosAdminView(AdminTemplateView):
+    template_name = 'usuarios.html'
+
+
+class AssinantesAdminView(AdminTemplateView):
+    template_name = 'assinantes.html'
+
+
+class RelatoriosAdminView(AdminTemplateView):
+    template_name = 'relatorios.html'
+
+
+class FinanceiroAdminView(AdminTemplateView):
+    template_name = 'financeiro.html'
+
+
+class CadastrosAdminView(AdminTemplateView):
+    template_name = 'cadastros.html'

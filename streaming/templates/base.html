@@ -1,0 +1,65 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}NeurAI | Painel administrativo{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            neurai: {
+              navy: '#10233f',
+              ink: '#16304f',
+              cyan: '#25c7d9',
+              mist: '#eef8fc',
+              sky: '#e5f4fb'
+            }
+          },
+          boxShadow: {
+            soft: '0 12px 30px rgba(35, 89, 122, 0.08)'
+          }
+        }
+      }
+    }
+  </script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-neurai-mist text-slate-700 antialiased">
+  <div class="flex min-h-screen">
+    <aside class="fixed inset-y-0 left-0 z-20 flex w-64 flex-col bg-neurai-navy text-white">
+      <div class="flex items-center gap-3 px-7 py-8">
+        <img src="{% static 'images/logo-neurai.png' %}" alt="NeurAI" class="h-10 w-10 rounded-xl object-contain">
+        <div><p class="text-xl font-bold tracking-tight">NeurAI</p><p class="text-[10px] uppercase tracking-[0.24em] text-cyan-200">Care intelligence</p></div>
+      </div>
+      <nav class="flex-1 space-y-1 px-4" aria-label="Navegação principal">
+        <p class="px-3 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">Visão geral</p>
+        <a href="/" class="flex items-center gap-3 rounded-xl bg-cyan-400 px-3 py-3 text-sm font-semibold text-neurai-navy shadow-lg shadow-cyan-950/20"><span class="text-lg">⌂</span>Dashboard</a>
+        <a href="/usuarios/" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"><span class="text-lg">♙</span>Usuários</a>
+        <a href="/assinantes/" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"><span class="text-lg">◉</span>Assinantes</a>
+        <a href="/relatorios/" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"><span class="text-lg">▤</span>Relatórios</a>
+        <p class="px-3 pb-3 pt-8 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">Operação</p>
+        <a href="/financeiro/" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"><span class="text-lg">◌</span>Financeiro</a>
+        <a href="/cadastros/" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"><span class="text-lg">▦</span>Cadastros</a>
+      </nav>
+      <div class="border-t border-white/10 p-5">
+        <div class="mb-4 flex items-center gap-3">
+          <img src="{% static 'images/logo-neurai.png' %}" alt="NeurAI" class="h-10 w-10 rounded-full object-contain bg-cyan-100 p-1">
+          <div class="min-w-0"><p class="truncate text-sm font-semibold">{{ admin_name|default:"Administrador" }}</p><p class="truncate text-xs text-slate-400">Administradora</p></div>
+        </div>
+        <a href="/" class="flex items-center gap-2 text-xs font-medium text-slate-400 transition hover:text-white"><span>↪</span>Sair da conta</a>
+      </div>
+    </aside>
+
+    <main class="relative ml-64 min-h-screen flex-1 overflow-hidden">
+      <div class="relative z-10 px-6 py-8 sm:px-10 lg:px-12">
+        <div class="mx-auto max-w-7xl">{% block content %}{% endblock %}</div>
+      </div>
+      <svg class="pointer-events-none absolute bottom-0 left-0 h-40 w-full text-white/60" viewBox="0 0 1440 180" preserveAspectRatio="none" aria-hidden="true"><path fill="currentColor" d="M0 112c220-70 390 36 620-4 220-39 403-89 820-4v76H0z"/><path fill="#dff3fa" d="M0 140c220-56 400 20 650-12 250-31 470-61 790-4v56H0z"/></svg>
+    </main>
+  </div>
+</body>
+</html>

@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from django.views.generic import TemplateView
 from streaming import views
 
 urlpatterns = [
@@ -26,4 +27,11 @@ urlpatterns = [
     path('api/alertas/', views.alertas_api),
     path('api/camera/', views.camera_api),
     path('', views.DashboardAdminView.as_view(), name='dashboard'),
+    path('login/', TemplateView.as_view(template_name='login.html'), name='login'),
+    path('cadastro-admin/', TemplateView.as_view(template_name='cadastro_admin.html'), name='cadastro_admin'),
+    path('usuarios/', views.UsuariosAdminView.as_view(), name='usuarios'),
+    path('assinantes/', views.AssinantesAdminView.as_view(), name='assinantes'),
+    path('relatorios/', views.RelatoriosAdminView.as_view(), name='relatorios'),
+    path('financeiro/', views.FinanceiroAdminView.as_view(), name='financeiro'),
+    path('cadastros/', views.CadastrosAdminView.as_view(), name='cadastros'),
 ]
