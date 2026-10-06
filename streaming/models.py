@@ -72,7 +72,7 @@ class Usuario(Document):
     perfil_crianca = EmbeddedDocumentField(PerfilCrianca)
     criado_em = DateTimeField(default=datetime.utcnow)
 
-    meta = {'collection': 'usuarios', 'indexes': ['email']}
+    meta = {'collection': 'Usuarios', 'indexes': ['email']}
 
     def definir_senha(self, senha):
         self.senha = make_password(senha)

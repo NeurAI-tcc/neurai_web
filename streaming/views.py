@@ -2,11 +2,12 @@ import json
 import secrets
 from functools import wraps
 
+from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views import View
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 
 from .models import Usuario, TokenAcesso, Alerta, Camera, Relatorio
 
@@ -80,6 +81,89 @@ def autenticado(view):
             return JsonResponse({'erro': 'Token ausente ou inválido'}, status=401)
         return view(request, *args, **kwargs)
     return wrapper
+
+
+def administrador(view):
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        usuario_id = request.session.get('admin_usuario_id')
+        if not usuario_id:
+            return redirect(f'/login/?next={request.path}')
+        try:
+            usuario = Usuario.objects.get(id=usuario_id, tipo_usuario='Admin')
+        except (Usuario.DoesNotExist, ValueError):
+            request.session.pop('admin_usuario_id', None)
+            return redirect(f'/login/?next={request.path}')
+        request.admin_usuario = usuario
+        return view(request, *args, **kwargs)
+    return wrapper
+
+
+def destino_admin(valor):
+    if valor and valor.startswith('/') and not valor.startswith('//'):
+        return valor
+    return '/'
+
+
+def login_admin(request):
+    if request.session.get('admin_usuario_id'):
+        return redirect(destino_admin(request.GET.get('next')))
+
+    erro = None
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip().lower()
+        senha = request.POST.get('senha', '')
+        try:
+            usuario = Usuario.objects.get(email=email, tipo_usuario='Admin')
+        except (Usuario.DoesNotExist, ValueError):
+            usuario = None
+
+        if usuario is not None and usuario.verificar_senha(senha):
+            request.session['admin_usuario_id'] = str(usuario.id)
+            return redirect(destino_admin(request.POST.get('next')))
+        erro = 'E-mail ou senha inválidos.'
+
+    return render(request, 'login.html', {
+        'erro': erro,
+        'next': request.GET.get('next', ''),
+    })
+
+
+def logout_admin(request):
+    request.session.pop('admin_usuario_id', None)
+    return redirect('/login/')
+
+
+def cadastro_admin(request):
+    erro = None
+    if request.method == 'POST':
+        nome = request.POST.get('nome', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        codigo = request.POST.get('codigo_admin', '')
+        senha = request.POST.get('senha', '')
+        confirmar_senha = request.POST.get('confirmar_senha', '')
+
+        if not settings.ADMIN_REGISTRATION_CODE:
+            erro = 'O cadastro administrativo está temporariamente indisponível.'
+        elif codigo != settings.ADMIN_REGISTRATION_CODE:
+            erro = 'Código de administrador inválido.'
+        elif not nome or not email or len(senha) < 8:
+            erro = 'Preencha os campos obrigatórios e use uma senha com no mínimo 8 caracteres.'
+        elif senha != confirmar_senha:
+            erro = 'As senhas não conferem.'
+        elif Usuario.objects(email=email).first() is not None:
+            erro = 'Este e-mail já está cadastrado.'
+        else:
+            usuario = Usuario(
+                nome_completo=nome,
+                email=email,
+                tipo_usuario='Admin',
+            )
+            usuario.senha = make_password(senha)
+            usuario.save()
+            return redirect('/login/')
+
+    return render(request, 'cadastro_admin.html', {'erro': erro})
 
 
 @csrf_exempt
@@ -194,12 +278,20 @@ def camera_api(request):
 
 
 class DashboardAdminView(View):
+    @administrador
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request):
         return render(request, 'dashboard.html', contexto_admin())
 
 
 class AdminTemplateView(View):
     template_name = None
+
+    @administrador
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):
         return render(request, self.template_name, contexto_admin())

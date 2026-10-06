@@ -50,7 +50,7 @@
           <img src="{% static 'images/logo-neurai.png' %}" alt="NeurAI" class="h-10 w-10 rounded-full object-contain bg-cyan-100 p-1">
           <div class="min-w-0"><p class="truncate text-sm font-semibold">{{ admin_name|default:"Administrador" }}</p><p class="truncate text-xs text-slate-400">Administradora</p></div>
         </div>
-        <a href="/" class="flex items-center gap-2 text-xs font-medium text-slate-400 transition hover:text-white"><span>↪</span>Sair da conta</a>
+        <a href="{% url 'logout' %}" class="flex items-center gap-2 text-xs font-medium text-slate-400 transition hover:text-white"><span>↪</span>Sair da conta</a>
       </div>
     </aside>
 

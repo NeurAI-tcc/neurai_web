@@ -131,5 +131,6 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://127.0.0.1:27017/neurai')
+MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://192.168.0.34:27017/Neurai')
 connect(host=MONGODB_URI, alias='default')
+ADMIN_REGISTRATION_CODE = os.getenv('NEURAI_ADMIN_CODE', 'grupo06@')
