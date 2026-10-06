@@ -1,5 +1,6 @@
 import json
 import secrets
+from datetime import datetime
 from functools import wraps
 
 from django.conf import settings
@@ -39,7 +40,7 @@ def serializar_rastreamento(usuario):
     }
 
 
-def contexto_admin():
+def contexto_admin(admin_usuario=None):
     usuarios = list(Usuario.objects.order_by('-criado_em'))
     cameras = list(Camera.objects.order_by('-id'))
     alertas = list(Alerta.objects.order_by('-timestamp'))
@@ -47,8 +48,16 @@ def contexto_admin():
     relatorios = list(Relatorio.objects.order_by('-data_geracao'))
     perfis_completos = sum(1 for usuario in usuarios if usuario.perfil_crianca is not None)
     receita = sum((usuario.valor or 0) for usuario in usuarios)
+    mes_atual = datetime.utcnow().month
+    ano_atual = datetime.utcnow().year
+    novos_usuarios = sum(
+        1 for usuario in usuarios
+        if usuario.criado_em and usuario.criado_em.month == mes_atual
+        and usuario.criado_em.year == ano_atual
+    )
     return {
-        'admin_name': 'Administrador',
+        'admin_name': admin_usuario.nome_completo if admin_usuario else 'Administrador',
+        'admin_email': admin_usuario.email if admin_usuario else '',
         'usuarios': usuarios,
         'cameras': cameras,
         'alertas': alertas,
@@ -61,6 +70,8 @@ def contexto_admin():
         'perfis_pendentes': max(len(usuarios) - perfis_completos, 0),
         'receita': receita,
         'total_alertas': len(alertas),
+        'novos_usuarios': novos_usuarios,
+        'assinaturas_ativas': len(tokens),
     }
 
 
@@ -281,7 +292,7 @@ def camera_api(request):
 @method_decorator(administrador, name='dispatch')
 class DashboardAdminView(View):
     def get(self, request):
-        return render(request, 'dashboard.html', contexto_admin())
+        return render(request, 'admin_dashboard.html', contexto_admin(request.admin_usuario))
 
 
 @method_decorator(administrador, name='dispatch')
@@ -289,7 +300,7 @@ class AdminTemplateView(View):
     template_name = None
 
     def get(self, request):
-        return render(request, self.template_name, contexto_admin())
+        return render(request, self.template_name, contexto_admin(request.admin_usuario))
 
 
 class UsuariosAdminView(AdminTemplateView):
