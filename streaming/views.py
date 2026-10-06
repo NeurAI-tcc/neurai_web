@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views import View
 from django.shortcuts import redirect, render
+from django.utils.decorators import method_decorator
 
 from .models import Usuario, TokenAcesso, Alerta, Camera, Relatorio
 
@@ -277,21 +278,15 @@ def camera_api(request):
     }, status=201)
 
 
+@method_decorator(administrador, name='dispatch')
 class DashboardAdminView(View):
-    @administrador
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
-
     def get(self, request):
         return render(request, 'dashboard.html', contexto_admin())
 
 
+@method_decorator(administrador, name='dispatch')
 class AdminTemplateView(View):
     template_name = None
-
-    @administrador
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):
         return render(request, self.template_name, contexto_admin())
