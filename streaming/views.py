@@ -8,13 +8,11 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
-from django.core.files.storage import default_storage
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views import View
 from django.shortcuts import redirect, render
 from django.utils.decorators import method_decorator
-from django.utils.text import get_valid_filename
 from mongoengine.errors import NotUniqueError, ValidationError
 
 from .models import Usuario, TokenAcesso, Alerta, Camera, Relatorio, PerfilCrianca
@@ -61,17 +59,24 @@ def lista_do_formulario(valor):
 def data_do_formulario(valor):
     if not valor:
         return None
+    try:
+        return datetime.strptime(valor, '%Y-%m-%d')
+    except ValueError:
+        return None
+
+
+def usuario_da_referencia(referencia):
+    usuario_id = getattr(referencia, 'id', referencia)
+    try:
+        return Usuario.objects(id=usuario_id).first()
+    except (ValidationError, ValueError):
+        return None
 
 
 def salvar_foto(arquivo):
     if arquivo is None:
         return None
-    nome = get_valid_filename(arquivo.name)
-    return default_storage.save(f'perfis_criancas/{secrets.token_hex(8)}_{nome}', arquivo)
-    try:
-        return datetime.strptime(valor, '%Y-%m-%d')
-    except ValueError:
-        return None
+    return arquivo.read()
 
 
 def perfil_crianca_do_formulario(dados, arquivos=None, perfil_atual=None):
@@ -93,7 +98,10 @@ def perfil_crianca_do_formulario(dados, arquivos=None, perfil_atual=None):
         valor = dados.get(f'crianca_{campo}', '').strip()
         arquivo = arquivos.get(f'crianca_{campo}') if arquivos else None
         if campo in {'foto_perfil', 'foto_frente', 'foto_lado_direito', 'foto_lado_esquerdo', 'foto_cima', 'foto_baixo', 'foto_sorrindo'}:
-            perfil[campo_modelo] = salvar_foto(arquivo) if arquivo else getattr(perfil_atual, campo_modelo, None)
+            foto_atual = getattr(perfil_atual, campo_modelo, None) if perfil_atual else None
+            if not isinstance(foto_atual, (bytes, bytearray)):
+                foto_atual = None
+            perfil[campo_modelo] = salvar_foto(arquivo) if arquivo else foto_atual
         elif campo in {'data_nascimento', 'data_diagnostico'}:
             perfil[campo_modelo] = data_do_formulario(valor)
         elif campo in {'condicoes_saude', 'alergias', 'atividades_favoritas', 'principais_gatilhos', 'estrategias_acalmar', 'alimentacao', 'atividades_terapeuticas_escolares'}:
@@ -132,6 +140,11 @@ def serializar_perfil_crianca(perfil):
     if perfil is None:
         return None
     dados = json.loads(perfil.to_json())
+    for campo_foto in {
+        'foto_perfil_url', 'laudo_url', 'foto_frente_url', 'foto_direita_url',
+        'foto_esquerda_url', 'foto_cima_url', 'foto_baixo_url', 'foto_sorrindo_url',
+    }:
+        dados[campo_foto] = bool(getattr(perfil, campo_foto, None))
     return {
         'informacoes_basicas': {
             'nome_completo': dados.get('nome_completo'),
@@ -685,12 +698,21 @@ class AssinantesAdminView(AdminTemplateView):
 
     def render_page(self, request, extra_context=None):
         contexto = contexto_admin(request.admin_usuario)
-        tokens = list(TokenAcesso.objects.order_by('-criado_em'))
+        tokens = list(TokenAcesso.objects.no_dereference().order_by('-criado_em'))
         busca = request.GET.get('q', '').strip()
         termo = busca.casefold()
         assinantes = []
+        assinaturas_orfas = []
+        tokens_validos = []
         for token in tokens:
-            usuario = token.usuario
+            usuario = usuario_da_referencia(token.usuario)
+            if usuario is None:
+                assinaturas_orfas.append({
+                    'token_id': str(token.id),
+                    'usuario_id': str(getattr(token.usuario, 'id', token.usuario)),
+                })
+                continue
+            tokens_validos.append(token)
             if termo and not any(
                 termo in (valor or '').casefold()
                 for valor in (usuario.nome_completo, usuario.email, usuario.ip_camera)
@@ -705,16 +727,17 @@ class AssinantesAdminView(AdminTemplateView):
         mes_atual = datetime.utcnow().month
         ano_atual = datetime.utcnow().year
         novas_assinaturas = sum(
-            1 for token in tokens
+            1 for token in tokens_validos
             if token.criado_em and token.criado_em.month == mes_atual
             and token.criado_em.year == ano_atual
         )
         contexto.update({
             'assinantes': assinantes,
+            'assinaturas_orfas': assinaturas_orfas,
             'busca': busca,
-            'assinaturas_ativas': len(tokens),
+            'assinaturas_ativas': len(assinantes),
             'novas_assinaturas': novas_assinaturas,
-            'sem_assinatura': max(len(contexto['usuarios']) - len(tokens), 0),
+            'sem_assinatura': max(len(contexto['usuarios']) - len(assinantes), 0),
         })
         if extra_context:
             contexto.update(extra_context)
@@ -733,8 +756,18 @@ class ExportarAssinantesAdminView(View):
             celula.font = Font(bold=True, color='FFFFFF')
             celula.fill = PatternFill('solid', fgColor='167B8A')
 
-        for token in TokenAcesso.objects.order_by('-criado_em'):
-            usuario = token.usuario
+        for token in TokenAcesso.objects.no_dereference().order_by('-criado_em'):
+            usuario = usuario_da_referencia(token.usuario)
+            if usuario is None:
+                worksheet.append([
+                    str(getattr(token.usuario, 'id', token.usuario)),
+                    'Usuário não encontrado',
+                    '',
+                    '',
+                    token.criado_em.strftime('%d/%m/%Y %H:%M') if token.criado_em else '',
+                    'Referência órfã',
+                ])
+                continue
             camera = Camera.objects(responsavel=usuario).first()
             worksheet.append([
                 str(usuario.id),

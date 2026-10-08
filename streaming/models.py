@@ -3,6 +3,7 @@ from datetime import datetime
 from django.contrib.auth.hashers import check_password, make_password
 from mongoengine import (
     BooleanField,
+    BinaryField,
     CASCADE,
     DateTimeField,
     DictField,
@@ -18,7 +19,7 @@ from mongoengine import (
 
 
 class PerfilCrianca(EmbeddedDocument):
-    foto_perfil_url = StringField()
+    foto_perfil_url = BinaryField()
     nome_completo = StringField(required=True)
     nome_social = StringField()
     data_nascimento = DateTimeField()
@@ -27,7 +28,7 @@ class PerfilCrianca(EmbeddedDocument):
     diagnostico_principal = StringField()
     nivel_suporte = StringField()
     data_diagnostico = DateTimeField()
-    laudo_url = StringField()
+    laudo_url = BinaryField()
 
     condicoes = ListField(StringField())
     alergias = ListField(StringField())
@@ -52,12 +53,12 @@ class PerfilCrianca(EmbeddedDocument):
     contato_emergencia = StringField()
     relacao_com_crianca = StringField()
 
-    foto_frente_url = StringField()
-    foto_direita_url = StringField()
-    foto_esquerda_url = StringField()
-    foto_cima_url = StringField()
-    foto_baixo_url = StringField()
-    foto_sorrindo_url = StringField()
+    foto_frente_url = BinaryField()
+    foto_direita_url = BinaryField()
+    foto_esquerda_url = BinaryField()
+    foto_cima_url = BinaryField()
+    foto_baixo_url = BinaryField()
+    foto_sorrindo_url = BinaryField()
 
 
 class Usuario(Document):

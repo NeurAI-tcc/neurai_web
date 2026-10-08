@@ -69,6 +69,9 @@ def carregar_imagem(caminho_ou_url):
         return None
 
     try:
+        if isinstance(caminho_ou_url, (bytes, bytearray)):
+            image_array = np.frombuffer(caminho_ou_url, dtype='uint8')
+            return cv2.imdecode(image_array, cv2.IMREAD_COLOR)
         if caminho_ou_url.startswith(('http://', 'https://')):
             with urlopen(caminho_ou_url, timeout=10) as resposta:
                 image_array = np.asarray(bytearray(resposta.read()), dtype='uint8')

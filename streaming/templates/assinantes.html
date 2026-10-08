@@ -204,6 +204,15 @@
             Assinaturas
         </h2>
 
+        {% if assinaturas_orfas %}
+        <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <strong>Referência pendente:</strong> existem {{ assinaturas_orfas|length }} assinatura(s) sem usuário correspondente em <code>Usuarios</code>.
+            {% for assinatura in assinaturas_orfas %}
+                <span class="ml-1">Usuário {{ assinatura.usuario_id }} (token {{ assinatura.token_id }})</span>{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <!-- BARRA DE AÇÕES -->
         <div class="flex items-center gap-4 mb-3">
 
