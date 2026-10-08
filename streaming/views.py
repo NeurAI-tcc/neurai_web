@@ -1,3 +1,5 @@
+import base64
+import binascii
 import json
 import secrets
 from io import BytesIO
@@ -77,6 +79,80 @@ def salvar_foto(arquivo):
     if arquivo is None:
         return None
     return arquivo.read()
+
+
+def converter_base64_para_bytes(valor):
+    if valor is None:
+        return None
+    if not isinstance(valor, str):
+        raise ValueError('Imagem ou laudo deve ser enviado como Base64.')
+
+    valor = valor.strip()
+    if not valor:
+        return None
+    if valor.lower().startswith('data:'):
+        cabecalho, separador, valor = valor.partition(',')
+        if not separador or 'base64' not in cabecalho.lower().split(';'):
+            raise ValueError('Imagem ou laudo deve conter Base64 válido.')
+        valor = valor.strip()
+    if not valor:
+        return None
+
+    try:
+        return base64.b64decode(''.join(valor.split()), validate=True)
+    except (binascii.Error, ValueError) as erro:
+        raise ValueError('Imagem ou laudo contém Base64 inválido.') from erro
+
+
+def perfil_crianca_do_json(perfil_data):
+    if perfil_data is None:
+        return None
+    if not isinstance(perfil_data, dict):
+        raise ValueError('perfil_crianca deve ser um objeto.')
+
+    perfil = {
+        campo: perfil_data[campo]
+        for campo in PerfilCrianca._fields
+        if campo in perfil_data
+    }
+    for campo_origem, campo_modelo in PERFIL_CRIANCA_CAMPOS.items():
+        if campo_origem in perfil_data and campo_modelo not in perfil:
+            perfil[campo_modelo] = perfil_data[campo_origem]
+
+    medicacoes = perfil.get('medicacoes', [])
+    if not isinstance(medicacoes, list) or any(
+        not isinstance(item, dict) for item in medicacoes
+    ):
+        raise ValueError(
+            'perfil_crianca.medicacoes deve ser uma lista de objetos.'
+        )
+    perfil['medicacoes'] = medicacoes
+
+    for campo in (
+        'foto_perfil_url',
+        'foto_frente_url',
+        'foto_direita_url',
+        'foto_esquerda_url',
+        'foto_cima_url',
+        'foto_baixo_url',
+        'foto_sorrindo_url',
+        'laudo_url',
+    ):
+        perfil[campo] = converter_base64_para_bytes(perfil.get(campo))
+
+    for campo in ('data_nascimento', 'data_diagnostico'):
+        valor = perfil.get(campo)
+        if isinstance(valor, str) and valor.strip():
+            try:
+                perfil[campo] = datetime.fromisoformat(
+                    valor.strip().replace('Z', '+00:00')
+                )
+            except ValueError as erro:
+                raise ValueError(f'{campo} deve conter uma data válida.') from erro
+
+    crianca = PerfilCrianca(**perfil)
+    crianca.validate()
+    return crianca
 
 
 def perfil_crianca_do_formulario(dados, arquivos=None, perfil_atual=None):
@@ -383,15 +459,20 @@ def cadastro_api(request):
         email = dados['email'].lower().strip()
         if not dados.get('nome_completo') or len(dados.get('senha', '')) < 6:
             raise ValueError('nome_completo e senha com no mínimo 6 caracteres são obrigatórios')
+        perfil_crianca = perfil_crianca_do_json(dados.get('perfil_crianca'))
         if Usuario.objects(email=email).first() is not None:
             return JsonResponse({'erro': 'E-mail já cadastrado'}, status=409)
         usuario = Usuario(nome_completo=dados['nome_completo'], email=email,
                           ip_camera=dados.get('ip_camera'),
-                          perfil_crianca=dados.get('perfil_crianca'))
+                          perfil_crianca=perfil_crianca)
         usuario.senha = make_password(dados['senha'])
         usuario.save()
-    except (KeyError, ValueError):
+    except ValueError as erro:
+        return JsonResponse({'erro': str(erro)}, status=400)
+    except KeyError:
         return JsonResponse({'erro': 'Dados de cadastro inválidos'}, status=400)
+    except ValidationError as erro:
+        return JsonResponse({'erro': f'Dados de cadastro inválidos: {erro}'}, status=400)
     return JsonResponse(serializar_usuario(usuario), status=201)
 
 
