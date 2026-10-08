@@ -13,7 +13,7 @@
 <div class="flex min-h-screen overflow-hidden">
 
     <!-- SIDEBAR -->
-    <aside class="flex min-h-screen w-[226px] min-w-[226px] flex-col bg-[#082642] px-[15px] pb-[18px] pt-[27px] text-white">
+    <aside class="fixed left-0 top-0 z-50 flex h-screen w-[226px] min-w-[226px] flex-col bg-[#082642] px-[15px] pb-[18px] pt-[27px] text-white">
 
         <!-- LOGO -->
         <div class="mb-[-30px] mt-[-50px] flex items-center gap-[7px] pl-[7px]">
@@ -79,7 +79,7 @@
         </nav>
 
         <!-- ADMINISTRADOR -->
-        <div class="mt-auto">
+        <div class="mt-[100px]">
             <div class="mb-[7px] rounded-[6px] border border-[#17466a] px-[10px] py-[8px]">
                 <div class="text-[10px] leading-3">{{ admin_name }}</div>
                 <div class="text-[9px] leading-3 text-[#d5e4ec]">{{ admin_email }}</div>
@@ -97,7 +97,7 @@
 
 
     <!-- CONTEÚDO -->
-    <main class="relative min-h-screen min-w-0 flex-1 overflow-hidden bg-[#c6e2f3] px-5 pb-[100px] pt-[18px]">
+    <main class="relative ml-[226px] min-h-screen min-w-0 overflow-hidden bg-[#c6e2f3] px-5 pb-[100px] pt-[18px] w-screen">
 
         <div class="relative z-10 ml-[30px] mr-[30px] mt-[30px]">
 
@@ -166,11 +166,11 @@
                 <!-- TOKENS -->
                 <div class="flex min-h-[91px] items-center gap-3 rounded-[14px] bg-white px-[14px] py-[11px] shadow-[0_3px_3px_rgba(0,0,0,0.25)]">
                     <div class="flex h-[80px] w-[80px] shrink-0 items-center justify-center rounded-[7px] bg-[#b5d7fa] text-[#07518d]">
-                        <svg class="h-[61px] w-[61px]" viewBox="0 0 24 24" fill="none">
-                            <rect x="3" y="6" width="18" height="12" rx="3" stroke="currentColor" stroke-width="1.8"/>
-                            <path d="M3 10h18" stroke="currentColor" stroke-width="1.8"/>
-                            <circle cx="8" cy="14" r="1.4" fill="currentColor"/>
+                        <svg width="50" height="50" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M13.5417 33.333C15.2676 33.333 16.6667 31.9339 16.6667 30.208C16.6667 28.4821 15.2676 27.083 13.5417 27.083C11.8159 27.083 10.4167 28.4821 10.4167 30.208C10.4167 31.9339 11.8159 33.333 13.5417 33.333Z" fill="#00386F"/>
+                            <path d="M38.5417 6.25H11.4583C8.42041 6.25331 5.50786 7.46158 3.35972 9.60972C1.21159 11.7579 0.00330869 14.6704 0 17.7083L0 32.2917C0.00330869 35.3296 1.21159 38.2421 3.35972 40.3903C5.50786 42.5384 8.42041 43.7467 11.4583 43.75H38.5417C41.5796 43.7467 44.4921 42.5384 46.6403 40.3903C48.7884 38.2421 49.9967 35.3296 50 32.2917V17.7083C49.9967 14.6704 48.7884 11.7579 46.6403 9.60972C44.4921 7.46158 41.5796 6.25331 38.5417 6.25ZM11.4583 12.5H38.5417C39.742 12.5002 40.9054 12.9151 41.8351 13.6743C42.7648 14.4335 43.4037 15.4906 43.6437 16.6667H6.35625C6.59631 15.4906 7.23523 14.4335 8.16492 13.6743C9.09461 12.9151 10.258 12.5002 11.4583 12.5V12.5ZM38.5417 37.5H11.4583C10.077 37.5 8.75224 36.9513 7.77549 35.9745C6.79873 34.9978 6.25 33.673 6.25 32.2917V22.9167H43.75V32.2917C43.75 33.673 43.2013 34.9978 42.2245 35.9745C41.2478 36.9513 39.923 37.5 38.5417 37.5Z" fill="#00386F"/>
                         </svg>
+
                     </div>
                     <div>
                         <div class="text-[10px] leading-[14px] mt-[0px]">Assinatutas ativas</div>
@@ -182,48 +182,114 @@
 
 
             <!-- GERENCIAMENTO -->
-            <section class="mb-[15px] rounded-[13px] bg-white px-[10px] pb-[14px] pt-[7px] shadow-[0_3px_3px_rgba(0,0,0,0.25)]">
+            <section class="mb-[15px] rounded-[13px] bg-white px-[10px] pb-[14px] pt-[7px] shadow-[0_3px_3px_rgba(0,0,0,0.25)] h-[140px]">
                 <h2 class="m-0 mb-[9px] text-[13px] font-bold">Gerenciamento</h2>
 
                 <div class="grid grid-cols-3 gap-[15px]">
 
-                    <a href="{% url 'usuarios' %}" class="flex min-h-[61px] items-center gap-[13px] rounded-[10px] bg-[#eeeeee] p-[7px] transition hover:bg-[#e2e2e2]">
-                        <div class="flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-[7px] bg-[#a8e8e7] text-[#009c9a]">
-                            <svg class="h-[30px] w-[30px]" viewBox="0 0 24 24">
-                                <circle cx="9" cy="8" r="3.5" fill="currentColor"/>
-                                <circle cx="16" cy="9" r="3" fill="currentColor" opacity=".75"/>
-                                <path d="M3 19c0-3.5 2.5-6 6-6s6 2.5 6 6" fill="currentColor"/>
+                    <a href="{% url 'usuarios' %}" class="flex min-h-[81px] items-center gap-[13px] rounded-[10px] bg-[#eeeeee] p-[7px] transition hover:bg-[#e2e2e2]">
+                        <div class="flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[7px] bg-[#a8e8e7] text-[#009c9a]">
+                            <svg width="41" height="30" viewBox="0 0 41 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <g filter="url(#filter0_i_459_346)">
+                                <g clip-path="url(#clip0_459_346)">
+                                <path d="M31.0537 17.5007H20.9462C19.3035 17.5027 17.7286 18.1562 16.567 19.3178C15.4054 20.4794 14.752 22.0542 14.75 23.697V30.0007H37.25V23.697C37.248 22.0542 36.5946 20.4794 35.433 19.3178C34.2714 18.1562 32.6965 17.5027 31.0537 17.5007Z" fill="#04BAB3"/>
+                                <path d="M26 15C30.1421 15 33.5 11.6421 33.5 7.5C33.5 3.35786 30.1421 0 26 0C21.8579 0 18.5 3.35786 18.5 7.5C18.5 11.6421 21.8579 15 26 15Z" fill="#04BAB3"/>
+                                </g>
+                                </g>
+                                <g filter="url(#filter1_i_459_346)">
+                                <g clip-path="url(#clip1_459_346)">
+                                <path d="M20.0537 17.5007H9.94624C8.3035 17.5027 6.72862 18.1562 5.56702 19.3178C4.40543 20.4794 3.75198 22.0542 3.74999 23.697V30.0007H26.25V23.697C26.248 22.0542 25.5946 20.4794 24.433 19.3178C23.2714 18.1562 21.6965 17.5027 20.0537 17.5007V17.5007Z" fill="#009B95"/>
+                                <path d="M15 15C19.1421 15 22.5 11.6421 22.5 7.5C22.5 3.35786 19.1421 0 15 0C10.8579 0 7.5 3.35786 7.5 7.5C7.5 11.6421 10.8579 15 15 15Z" fill="#009B95"/>
+                                </g>
+                                </g>
+                                <defs>
+                                <filter id="filter0_i_459_346" x="11" y="0" width="30" height="34" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                                <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+                                <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+                                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                                <feOffset dy="4"/>
+                                <feGaussianBlur stdDeviation="2"/>
+                                <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+                                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+                                <feBlend mode="normal" in2="shape" result="effect1_innerShadow_459_346"/>
+                                </filter>
+                                <filter id="filter1_i_459_346" x="0" y="0" width="30" height="34" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                                <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+                                <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+                                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                                <feOffset dy="4"/>
+                                <feGaussianBlur stdDeviation="2"/>
+                                <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+                                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+                                <feBlend mode="normal" in2="shape" result="effect1_innerShadow_459_346"/>
+                                </filter>
+                                <clipPath id="clip0_459_346">
+                                <rect width="30" height="30" fill="white" transform="translate(11)"/>
+                                </clipPath>
+                                <clipPath id="clip1_459_346">
+                                <rect width="30" height="30" fill="white"/>
+                                </clipPath>
+                                </defs>
                             </svg>
+
                         </div>
                         <div>
-                            <div class="text-[10px] font-bold leading-3">Gerenciar usuários</div>
-                            <div class="text-[9px] leading-[11px]">Visualize, edite e<br>gerencie usuários</div>
+                            <div class="text-[14px] font-bold leading-3">Gerenciar usuários</div>
+                            <div class="text-[10px] leading-[11px] mt-[5px]">Visualize, edite e<br>gerencie usuários</div>
                         </div>
                     </a>
 
                     <a href="{% url 'assinantes' %}" class="flex min-h-[61px] items-center gap-[13px] rounded-[10px] bg-[#eeeeee] p-[7px] transition hover:bg-[#e2e2e2]">
-                        <div class="flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-[7px] bg-[#d2b8f8] text-[#5c13a9]">
-                            <svg class="h-[30px] w-[30px]" viewBox="0 0 24 24" fill="none">
-                                <rect x="3" y="5" width="18" height="14" rx="3" stroke="currentColor" stroke-width="1.8"/>
-                                <path d="M3 10h18" stroke="currentColor" stroke-width="1.8"/>
+                        <div class="flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[7px] bg-[#d2b8f8] text-[#5c13a9]">
+                            <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <g clip-path="url(#clip0_342_1781)">
+                                <path d="M8.12505 19.9999C9.16058 19.9999 10 19.1604 10 18.1249C10 17.0893 9.16058 16.2499 8.12505 16.2499C7.08951 16.2499 6.25005 17.0893 6.25005 18.1249C6.25005 19.1604 7.08951 19.9999 8.12505 19.9999Z" fill="#2B0078"/>
+                                <path d="M23.125 3.75H6.87498C5.05223 3.75199 3.3047 4.47695 2.01582 5.76583C0.726936 7.05472 0.00196995 8.80225 -1.52588e-05 10.625L-1.52588e-05 19.375C0.00196995 21.1978 0.726936 22.9453 2.01582 24.2342C3.3047 25.523 5.05223 26.248 6.87498 26.25H23.125C24.9477 26.248 26.6953 25.523 27.9841 24.2342C29.273 22.9453 29.998 21.1978 30 19.375V10.625C29.998 8.80225 29.273 7.05472 27.9841 5.76583C26.6953 4.47695 24.9477 3.75199 23.125 3.75ZM6.87498 7.5H23.125C23.8452 7.50014 24.5432 7.74903 25.101 8.20458C25.6588 8.66012 26.0422 9.29436 26.1862 10H3.81374C3.95777 9.29436 4.34112 8.66012 4.89894 8.20458C5.45675 7.74903 6.15479 7.50014 6.87498 7.5ZM23.125 22.5H6.87498C6.04618 22.5 5.25133 22.1708 4.66528 21.5847C4.07923 20.9987 3.74998 20.2038 3.74998 19.375V13.75H26.25V19.375C26.25 20.2038 25.9207 20.9987 25.3347 21.5847C24.7486 22.1708 23.9538 22.5 23.125 22.5Z" fill="#2B0078"/>
+                                </g>
+                                <defs>
+                                <clipPath id="clip0_342_1781">
+                                <rect width="30" height="30" fill="white"/>
+                                </clipPath>
+                                </defs>
                             </svg>
+
                         </div>
                         <div>
-                            <div class="text-[10px] font-bold leading-3">Gerenciar assinaturas</div>
-                            <div class="text-[9px] leading-[11px]">Visualize e gerencie<br>assinaturas</div>
+                            <div class="text-[14px] font-bold leading-3">Gerenciar assinaturas</div>
+                            <div class="text-[10px] leading-[11px] mt-[5px]">Visualize e gerencie<br>assinaturas</div>
                         </div>
                     </a>
 
                     <a href="{% url 'cadastros' %}" class="flex min-h-[61px] items-center gap-[13px] rounded-[10px] bg-[#eeeeee] p-[7px] transition hover:bg-[#e2e2e2]">
-                        <div class="flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-[7px] bg-[#b8d9fa] text-[#07518d]">
-                            <svg class="h-[30px] w-[30px]" viewBox="0 0 24 24" fill="none">
-                                <path d="M12 3l7 3v5c0 4.5-2.8 8.2-7 10-4.2-1.8-7-5.5-7-10V6l7-3Z" stroke="currentColor" stroke-width="1.7"/>
-                                <path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                        <div class="flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[7px] bg-[#b8d9fa] text-[#07518d]">
+                            <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <g filter="url(#filter0_i_342_1791)">
+                                <g clip-path="url(#clip0_342_1791)">
+                                <path d="M23.2264 2.67591L15.3951 0.0646614C15.1387 -0.02074 14.8615 -0.02074 14.6051 0.0646614L6.77387 2.67591C5.52876 3.08951 4.44564 3.88498 3.67843 4.9493C2.91121 6.01362 2.49892 7.29265 2.50012 8.60466V15.0009C2.50012 24.4547 14.0001 29.6759 14.4926 29.8934C14.6524 29.9644 14.8253 30.0011 15.0001 30.0011C15.175 30.0011 15.3478 29.9644 15.5076 29.8934C16.0001 29.6759 27.5001 24.4547 27.5001 15.0009V8.60466C27.5013 7.29265 27.089 6.01362 26.3218 4.9493C25.5546 3.88498 24.4715 3.08951 23.2264 2.67591ZM25.0001 15.0009C25.0001 21.8197 17.1014 26.2922 15.0001 27.3622C12.8964 26.2959 5.00012 21.8372 5.00012 15.0009V8.60466C5.0002 7.81751 5.24797 7.05034 5.70833 6.41184C6.16869 5.77334 6.81831 5.2959 7.56512 5.04716L15.0001 2.56841L22.4351 5.04716C23.1819 5.2959 23.8316 5.77334 24.2919 6.41184C24.7523 7.05034 25.0001 7.81751 25.0001 8.60466V15.0009Z" fill="#004A95"/>
+                                <path d="M19.1249 10.3755L13.8899 15.6255L11.0849 12.7005C10.9724 12.5774 10.8363 12.4781 10.6847 12.4084C10.5332 12.3387 10.3693 12.3001 10.2025 12.2947C10.0358 12.2894 9.86974 12.3175 9.71405 12.3773C9.55837 12.4372 9.41623 12.5276 9.29601 12.6432C9.1758 12.7588 9.07994 12.8973 9.01409 13.0506C8.94824 13.2038 8.91372 13.3687 8.91257 13.5355C8.91142 13.7023 8.94366 13.8676 9.00739 14.0217C9.07113 14.1759 9.16507 14.3157 9.28367 14.433L12.1662 17.433C12.3811 17.6652 12.641 17.8513 12.9299 17.9803C13.2189 18.1092 13.531 18.1781 13.8474 18.183H13.8887C14.1987 18.184 14.5059 18.1234 14.7924 18.0048C15.0789 17.8861 15.3389 17.7117 15.5574 17.4917L20.8974 12.1517C21.0141 12.0353 21.1066 11.8971 21.1698 11.745C21.233 11.5928 21.2657 11.4297 21.2658 11.2649C21.266 11.1001 21.2337 10.937 21.1708 10.7847C21.108 10.6324 21.0157 10.494 20.8993 10.3773C20.7829 10.2607 20.6447 10.1681 20.4925 10.1049C20.3404 10.0417 20.1773 10.0091 20.0125 10.0089C19.8477 10.0087 19.6845 10.041 19.5323 10.1039C19.38 10.1668 19.2416 10.2591 19.1249 10.3755Z" fill="#004A95"/>
+                                </g>
+                                </g>
+                                <defs>
+                                <filter id="filter0_i_342_1791" x="0" y="0" width="30" height="34" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                                <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+                                <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+                                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                                <feOffset dy="4"/>
+                                <feGaussianBlur stdDeviation="2"/>
+                                <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+                                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+                                <feBlend mode="normal" in2="shape" result="effect1_innerShadow_342_1791"/>
+                                </filter>
+                                <clipPath id="clip0_342_1791">
+                                <rect width="30" height="30" fill="white"/>
+                                </clipPath>
+                                </defs>
                             </svg>
+
                         </div>
                         <div>
-                            <div class="text-[10px] font-bold leading-3">Gerenciar permissões</div>
-                            <div class="text-[9px] leading-[11px]">gerencie permissões<br>de acesso</div>
+                            <div class="text-[14px] font-bold leading-3">Gerenciar permissões</div>
+                            <div class="text-[10px] leading-[11px] mt-[5px]">gerencie permissões<br>de acesso</div>
                         </div>
                     </a>
 
@@ -232,49 +298,79 @@
 
 
             <!-- FINANCEIRO -->
-            <section class="mb-[15px] rounded-[13px] bg-white px-[10px] pb-[14px] pt-[7px] shadow-[0_3px_3px_rgba(0,0,0,0.25)]">
+            <section class="mb-[15px] rounded-[13px] bg-white px-[10px] pb-[14px] pt-[7px] shadow-[0_3px_3px_rgba(0,0,0,0.25)] h-[160px]">
                 <h2 class="m-0 mb-[9px] text-[13px] font-bold">Financeiro</h2>
 
                 <div class="grid grid-cols-3 gap-[15px]">
 
-                    <div class="flex min-h-[61px] items-center gap-[13px] rounded-[10px] bg-[#eeeeee] p-[7px]">
-                        <div class="flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-[7px] bg-[#a8e8e7] text-[#009c9a]">
-                            <svg class="h-[31px] w-[31px]" viewBox="0 0 24 24">
-                                <path d="M12 3v18M16 7.5C15.3 6.5 14.1 6 12.5 6 10.3 6 8.5 7.2 8.5 9c0 4.5 8 2.5 8 7 0 1.9-1.7 3-4 3-1.8 0-3.3-.6-4.3-1.8"
-                                      stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <div class="flex min-h-[100px] items-center gap-[13px] rounded-[10px] bg-[#eeeeee] p-[7px]">
+                        <div class="flex h-[70px] w-[70px] shrink-0 items-center justify-center rounded-[7px] bg-[#a8e8e7] text-[#009c9a]">
+                            <svg width="24" height="37" viewBox="0 0 24 37" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <g filter="url(#filter0_i_342_1726)">
+                                <path d="M10.5398 36.3637V2.00272e-05H12.8693V36.3637H10.5398ZM16.7188 12.0029C16.6051 10.857 16.1174 9.96688 15.2557 9.33241C14.3939 8.69794 13.2244 8.3807 11.7472 8.3807C10.7434 8.3807 9.89583 8.52275 9.20455 8.80684C8.51326 9.08146 7.98295 9.46498 7.61364 9.95741C7.25379 10.4498 7.07386 11.0085 7.07386 11.6335C7.05492 12.1544 7.16383 12.6089 7.40057 12.9972C7.64678 13.3854 7.98295 13.7216 8.40909 14.0057C8.83523 14.2803 9.32765 14.5218 9.88636 14.7301C10.4451 14.929 11.0417 15.0995 11.6761 15.2415L14.2898 15.8665C15.5587 16.1506 16.7235 16.5294 17.7841 17.0029C18.8447 17.4763 19.7633 18.0587 20.5398 18.75C21.3163 19.4413 21.9176 20.2557 22.3438 21.1932C22.7794 22.1307 23.0019 23.2055 23.0114 24.4176C23.0019 26.1979 22.5473 27.7415 21.6477 29.0483C20.7576 30.3457 19.4697 31.3542 17.7841 32.0739C16.108 32.7841 14.0862 33.1392 11.7188 33.1392C9.37026 33.1392 7.32481 32.7794 5.58239 32.0597C3.84943 31.34 2.49526 30.2746 1.51989 28.8637C0.553976 27.4432 0.0473476 25.6866 -8.9407e-07 23.5938H5.9517C6.01799 24.5692 6.29735 25.3835 6.78977 26.037C7.29167 26.6809 7.95928 27.1686 8.79261 27.5C9.63542 27.822 10.5871 27.983 11.6477 27.983C12.6894 27.983 13.5937 27.8315 14.3608 27.5284C15.1373 27.2254 15.7386 26.804 16.1648 26.2642C16.5909 25.7245 16.804 25.1042 16.804 24.4034C16.804 23.75 16.6098 23.2008 16.2216 22.7557C15.8428 22.3106 15.2841 21.9318 14.5455 21.6193C13.8163 21.3068 12.9214 21.0227 11.8608 20.7671L8.69318 19.9716C6.24053 19.375 4.30398 18.4423 2.88352 17.1733C1.46307 15.9044 0.757575 14.1951 0.767045 12.0455C0.757575 10.2841 1.22632 8.74529 2.17329 7.429C3.12973 6.11271 4.44129 5.08525 6.10795 4.34661C7.77462 3.60798 9.66856 3.23866 11.7898 3.23866C13.9489 3.23866 15.8333 3.60798 17.4432 4.34661C19.0625 5.08525 20.322 6.11271 21.2216 7.429C22.1212 8.74529 22.5852 10.2699 22.6136 12.0029H16.7188Z" fill="#005855"/>
+                                </g>
+                                <defs>
+                                <filter id="filter0_i_342_1726" x="0" y="0" width="23.0114" height="40.3636" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                                <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+                                <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+                                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                                <feOffset dy="4"/>
+                                <feGaussianBlur stdDeviation="2"/>
+                                <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+                                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+                                <feBlend mode="normal" in2="shape" result="effect1_innerShadow_342_1726"/>
+                                </filter>
+                                </defs>
                             </svg>
+
                         </div>
                         <div>
-                            <div class="text-[10px] font-bold leading-3">Receita do mês</div>
-                            <div class="text-[16px] leading-5">R$ {{ receita|floatformat:2 }}</div>
-                            <div class="text-[9px] leading-[11px] text-[#00a63c]">total registrado</div>
+                            <div class="text-[13px] font-bold leading-3">Receita do mês</div>
+                            <div class="text-[22px] leading-5 mt-[7px]">R$ {{ receita|floatformat:2 }}</div>
+                            <div class="text-[11px] leading-[11px] text-[#00a63c] mt-[7px]">total registrado</div>
                         </div>
                     </div>
 
-                    <div class="flex min-h-[61px] items-center gap-[13px] rounded-[10px] bg-[#eeeeee] p-[7px]">
-                        <div class="flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-[7px] bg-[#d2b8f8] text-[#5c13a9]">
-                            <svg class="h-[30px] w-[30px]" viewBox="0 0 24 24" fill="none">
-                                <path d="M12 5v4l3 2M20 12a8 8 0 1 1-16 0 8 8 0 0 1 8-8M4 4v5h5"
-                                      stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <div class="flex min-h-[100px] items-center gap-[13px] rounded-[10px] bg-[#eeeeee] p-[7px]">
+                        <div class="flex h-[70px] w-[70px] shrink-0 items-center justify-center rounded-[7px] bg-[#d2b8f8] text-[#5c13a9]">
+                            <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <g clip-path="url(#clip0_342_1727)">
+                                <path d="M15 0C11.0263 0.0138341 7.21948 1.59973 4.41125 4.41125L1.25 1.25V8.63625C1.24984 8.81539 1.285 8.9928 1.35347 9.15833C1.42195 9.32386 1.5224 9.47427 1.64907 9.60093C1.77574 9.7276 1.92614 9.82805 2.09167 9.89653C2.2572 9.965 2.43461 10.0002 2.61375 10H10L7.05875 7.05875C8.90031 5.22607 11.3203 4.08853 13.9064 3.8399C16.4926 3.59128 19.085 4.24694 21.242 5.69522C23.3989 7.14349 24.9871 9.29478 25.7359 11.7826C26.4847 14.2705 26.3478 16.941 25.3486 19.3392C24.3494 21.7374 22.5496 23.7151 20.2558 24.9352C17.9621 26.1554 15.3162 26.5426 12.7691 26.0308C10.2219 25.5191 7.93087 24.1401 6.28634 22.1287C4.64181 20.1174 3.74546 17.5981 3.75 15H0C0 17.9667 0.879735 20.8668 2.52796 23.3336C4.17618 25.8003 6.51886 27.7229 9.25975 28.8582C12.0006 29.9935 15.0166 30.2906 17.9264 29.7118C20.8361 29.133 23.5088 27.7044 25.6066 25.6066C27.7044 23.5088 29.133 20.8361 29.7118 17.9264C30.2906 15.0166 29.9935 12.0006 28.8582 9.25975C27.7229 6.51886 25.8003 4.17618 23.3336 2.52796C20.8668 0.879735 17.9667 0 15 0V0Z" fill="#59007C"/>
+                                <path d="M12.5001 8.74927V17.0255L16.7988 21.3255L19.4513 18.673L16.2501 15.473V8.74927H12.5001Z" fill="#59007C"/>
+                                </g>
+                                <defs>
+                                <clipPath id="clip0_342_1727">
+                                <rect width="30" height="30" fill="white"/>
+                                </clipPath>
+                                </defs>
                             </svg>
+
                         </div>
                         <div>
-                            <div class="text-[10px] font-bold leading-3">Assinaturas do<br>mês</div>
-                            <div class="text-[21px] leading-[22px]">{{ assinaturas_ativas }}</div>
-                            <div class="text-[9px] leading-[11px] text-[#00a63c]">tokens ativos</div>
+                            <div class="text-[13px] font-bold leading-3">Assinaturas do mês</div>
+                            <div class="text-[22px] leading-[22px] mt-[7px]">{{ assinaturas_ativas }}</div>
+                            <div class="text-[11px] leading-[11px] text-[#00a63c] mt-[7px]">tokens ativos</div>
                         </div>
                     </div>
 
-                    <div class="flex min-h-[61px] items-center gap-[13px] rounded-[10px] bg-[#eeeeee] p-[7px]">
-                        <div class="flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-[7px] bg-[#e5d1b4] text-[#b56300]">
-                            <svg class="h-[31px] w-[31px]" viewBox="0 0 24 24">
-                                <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <div class="flex min-h-[100px] items-center gap-[13px] rounded-[10px] bg-[#eeeeee] p-[7px]">
+                        <div class="flex h-[70px] w-[70px] shrink-0 items-center justify-center rounded-[7px] bg-[#e5d1b4] text-[#b56300]">
+                            <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <g clip-path="url(#clip0_342_1731)">
+                                <path d="M17.6513 15.0002L29.4509 3.20195C30.1833 2.4695 30.1833 1.28197 29.4509 0.549582C28.7184 -0.182868 27.5309 -0.182868 26.7985 0.549582L15.0002 12.3491L3.20195 0.549582C2.4695 -0.182868 1.28197 -0.182868 0.549582 0.549582C-0.18281 1.28203 -0.182868 2.46956 0.549582 3.20195L12.3491 15.0002L0.549582 26.7985C-0.182868 27.531 -0.182868 28.7185 0.549582 29.4509C1.28203 30.1833 2.46956 30.1833 3.20195 29.4509L15.0002 17.6513L26.7984 29.4509C27.5309 30.1833 28.7184 30.1833 29.4508 29.4509C30.1833 28.7184 30.1833 27.5309 29.4508 26.7985L17.6513 15.0002Z" fill="#A75700"/>
+                                </g>
+                                <defs>
+                                <clipPath id="clip0_342_1731">
+                                <rect width="30" height="30" fill="white"/>
+                                </clipPath>
+                                </defs>
                             </svg>
+
                         </div>
                         <div>
-                            <div class="text-[10px] font-bold leading-3">Alertas<br>registrados</div>
-                            <div class="text-[21px] leading-[22px]">{{ total_alertas }}</div>
-                            <div class="text-[9px] leading-[11px] text-[#e01818]">dados do banco</div>
+                            <div class="text-[13px] font-bold leading-3">Alertas registrados</div>
+                            <div class="text-[22px] leading-[22px] mt-[7px]">{{ total_alertas }}</div>
+                            <div class="text-[11px] leading-[11px] text-[#e01818] mt-[7px]">dados do banco</div>
                         </div>
                     </div>
 
@@ -285,7 +381,7 @@
 
 
         <!-- ONDAS: feitas apenas com classes Tailwind -->
-        <div class="pointer-events-none absolute bottom-0 left-0 right-0 z-0 h-[145px] overflow-hidden">
+        <div class="pointer-events-none fixed bottom-0 left-0 right-0 z-0 h-[145px] overflow-hidden">
           <!-- imagem das ondas -->
           <img src="{% static 'images/ondas.png' %}" alt="Ondas" class="absolute bottom-0 left-0 right-0 h-full w-full object-cover">
 
