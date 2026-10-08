@@ -31,6 +31,7 @@ class PerfilCrianca(EmbeddedDocument):
 
     condicoes = ListField(StringField())
     alergias = ListField(StringField())
+    usa_medicamentos = BooleanField(default=False)
     medicacoes = ListField(DictField())
     possui_crises_epilepticas = BooleanField(default=False)
     frequencia_crises = StringField()

@@ -8,14 +8,113 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
+from django.core.files.storage import default_storage
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views import View
 from django.shortcuts import redirect, render
 from django.utils.decorators import method_decorator
+from django.utils.text import get_valid_filename
 from mongoengine.errors import NotUniqueError, ValidationError
 
-from .models import Usuario, TokenAcesso, Alerta, Camera, Relatorio
+from .models import Usuario, TokenAcesso, Alerta, Camera, Relatorio, PerfilCrianca
+
+
+PERFIL_CRIANCA_CAMPOS = {
+    'nome_completo': 'nome_completo',
+    'nome_social': 'nome_social',
+    'data_nascimento': 'data_nascimento',
+    'sexo': 'sexo',
+    'foto_perfil': 'foto_perfil_url',
+    'diagnostico_principal': 'diagnostico_principal',
+    'nivel_suporte': 'nivel_suporte',
+    'data_diagnostico': 'data_diagnostico',
+    'laudos_relatorios': 'laudo_url',
+    'condicoes_saude': 'condicoes',
+    'alergias': 'alergias',
+    'medicamentos': 'medicacoes',
+    'frequencia_crises': 'frequencia_crises',
+    'atividades_favoritas': 'atividades_favoritas',
+    'principais_gatilhos': 'gatilhos',
+    'estrategias_acalmar': 'o_que_ajuda_acalmar',
+    'forma_comunicacao': 'comunicacao',
+    'horario_acordar': 'horario_acordar',
+    'horario_dormir': 'horario_dormir',
+    'alimentacao': 'alimentacao',
+    'atividades_terapeuticas_escolares': 'atividades',
+    'observacoes': 'observacoes',
+    'contato_emergencia': 'contato_emergencia',
+    'relacao_com_crianca': 'relacao_com_crianca',
+    'foto_frente': 'foto_frente_url',
+    'foto_lado_direito': 'foto_direita_url',
+    'foto_lado_esquerdo': 'foto_esquerda_url',
+    'foto_cima': 'foto_cima_url',
+    'foto_baixo': 'foto_baixo_url',
+    'foto_sorrindo': 'foto_sorrindo_url',
+}
+
+
+def lista_do_formulario(valor):
+    return [item.strip() for item in valor.split(',') if item.strip()]
+
+
+def data_do_formulario(valor):
+    if not valor:
+        return None
+
+
+def salvar_foto(arquivo):
+    if arquivo is None:
+        return None
+    nome = get_valid_filename(arquivo.name)
+    return default_storage.save(f'perfis_criancas/{secrets.token_hex(8)}_{nome}', arquivo)
+    try:
+        return datetime.strptime(valor, '%Y-%m-%d')
+    except ValueError:
+        return None
+
+
+def perfil_crianca_do_formulario(dados, arquivos=None, perfil_atual=None):
+    nome = dados.get('crianca_nome_completo', '').strip()
+    fotos_enviadas = arquivos and any(arquivos.get(f'crianca_{campo}') for campo in {
+        'foto_perfil', 'foto_frente', 'foto_lado_direito', 'foto_lado_esquerdo',
+        'foto_cima', 'foto_baixo', 'foto_sorrindo',
+    })
+    preenchido = nome or fotos_enviadas or any(dados.get(f'crianca_{campo}', '').strip() for campo in PERFIL_CRIANCA_CAMPOS if campo != 'nome_completo')
+    if not preenchido:
+        return None
+    if not nome:
+        raise ValueError('O nome completo da criança é obrigatório quando houver dados de perfil.')
+
+    perfil = {'nome_completo': nome}
+    for campo, campo_modelo in PERFIL_CRIANCA_CAMPOS.items():
+        if campo == 'nome_completo':
+            continue
+        valor = dados.get(f'crianca_{campo}', '').strip()
+        arquivo = arquivos.get(f'crianca_{campo}') if arquivos else None
+        if campo in {'foto_perfil', 'foto_frente', 'foto_lado_direito', 'foto_lado_esquerdo', 'foto_cima', 'foto_baixo', 'foto_sorrindo'}:
+            perfil[campo_modelo] = salvar_foto(arquivo) if arquivo else getattr(perfil_atual, campo_modelo, None)
+        elif campo in {'data_nascimento', 'data_diagnostico'}:
+            perfil[campo_modelo] = data_do_formulario(valor)
+        elif campo in {'condicoes_saude', 'alergias', 'atividades_favoritas', 'principais_gatilhos', 'estrategias_acalmar', 'alimentacao', 'atividades_terapeuticas_escolares'}:
+            perfil[campo_modelo] = lista_do_formulario(valor)
+        elif campo == 'medicamentos':
+            if not valor:
+                perfil[campo_modelo] = []
+            else:
+                try:
+                    medicamentos = json.loads(valor)
+                except json.JSONDecodeError:
+                    medicamentos = lista_do_formulario(valor)
+                perfil[campo_modelo] = medicamentos if isinstance(medicamentos, list) else []
+        else:
+            perfil[campo_modelo] = valor or None
+
+    perfil['usa_medicamentos'] = dados.get('crianca_usa_medicamentos') in {'on', 'true', '1'}
+    perfil['possui_crises_epilepticas'] = dados.get('crianca_possui_crises_epilepticas') in {'on', 'true', '1'}
+    perfil['possui_sonecas'] = dados.get('crianca_faz_soneca') in {'on', 'true', '1'}
+    perfil['seletividade_alimentar'] = dados.get('crianca_possui_seletividade_alimentar') in {'on', 'true', '1'}
+    return PerfilCrianca(**perfil)
 
 
 def serializar_usuario(usuario):
@@ -26,6 +125,62 @@ def serializar_usuario(usuario):
         'id': str(usuario.id), 'nome_completo': usuario.nome_completo,
         'email': usuario.email, 'tipo_usuario': usuario.tipo_usuario,
         'ip_camera': usuario.ip_camera, 'perfil_crianca': perfil,
+    }
+
+
+def serializar_perfil_crianca(perfil):
+    if perfil is None:
+        return None
+    dados = json.loads(perfil.to_json())
+    return {
+        'informacoes_basicas': {
+            'nome_completo': dados.get('nome_completo'),
+            'nome_social': dados.get('nome_social'),
+            'data_nascimento': dados.get('data_nascimento'),
+            'sexo': dados.get('sexo'),
+            'foto_perfil': dados.get('foto_perfil_url'),
+        },
+        'diagnostico': {
+            'diagnostico_principal': dados.get('diagnostico_principal'),
+            'nivel_suporte': dados.get('nivel_suporte'),
+            'data_diagnostico': dados.get('data_diagnostico'),
+            'laudos_relatorios': dados.get('laudo_url'),
+        },
+        'saude': {
+            'condicoes_saude': dados.get('condicoes'),
+            'alergias': dados.get('alergias'),
+            'usa_medicamentos': dados.get('usa_medicamentos', bool(dados.get('medicacoes'))),
+            'medicamentos': dados.get('medicacoes'),
+            'possui_crises_epilepticas': dados.get('possui_crises_epilepticas'),
+            'frequencia_crises': dados.get('frequencia_crises'),
+        },
+        'preferencias_comportamentos': {
+            'atividades_favoritas': dados.get('atividades_favoritas'),
+            'principais_gatilhos': dados.get('gatilhos'),
+            'estrategias_acalmar': dados.get('o_que_ajuda_acalmar'),
+            'forma_comunicacao': dados.get('comunicacao'),
+        },
+        'rotina_diaria': {
+            'horario_acordar': dados.get('horario_acordar'),
+            'horario_dormir': dados.get('horario_dormir'),
+            'faz_soneca': dados.get('possui_sonecas'),
+            'alimentacao': dados.get('alimentacao'),
+            'possui_seletividade_alimentar': dados.get('seletividade_alimentar'),
+            'atividades_terapeuticas_escolares': dados.get('atividades'),
+        },
+        'informacoes_adicionais': {
+            'observacoes': dados.get('observacoes'),
+            'contato_emergencia': dados.get('contato_emergencia'),
+            'relacao_com_crianca': dados.get('relacao_com_crianca'),
+        },
+        'reconhecimento_facial': {
+            'foto_frente': dados.get('foto_frente_url'),
+            'foto_lado_direito': dados.get('foto_direita_url'),
+            'foto_lado_esquerdo': dados.get('foto_esquerda_url'),
+            'foto_cima': dados.get('foto_cima_url'),
+            'foto_baixo': dados.get('foto_baixo_url'),
+            'foto_sorrindo': dados.get('foto_sorrindo_url'),
+        },
     }
 
 
@@ -383,10 +538,12 @@ class DetalharUsuarioAdminView(View):
             'email': usuario.email,
             'tipo_usuario': usuario.tipo_usuario,
             'ip_camera': usuario.ip_camera or 'Não informado',
+            'pagamento_conta': usuario.pagamento_conta or 'Não informado',
+            'valor': usuario.valor,
             'criado_em': usuario.criado_em.strftime('%d/%m/%Y %H:%M') if usuario.criado_em else 'Não informado',
             'assinatura_ativa': TokenAcesso.objects(usuario=usuario).first() is not None,
             'camera': camera.nome_camara if camera else 'Não cadastrada',
-            'perfil_crianca': usuario.perfil_crianca.nome_completo if usuario.perfil_crianca else 'Não informado',
+            'perfil_crianca': serializar_perfil_crianca(usuario.perfil_crianca),
         })
 
     def post(self, request, usuario_id):
@@ -416,6 +573,13 @@ class DetalharUsuarioAdminView(View):
         usuario.nome_completo = nome
         usuario.email = email
         usuario.ip_camera = ip_camera or None
+        if any(chave.startswith('crianca_') for chave in request.POST):
+            try:
+                usuario.perfil_crianca = perfil_crianca_do_formulario(
+                    request.POST, request.FILES, usuario.perfil_crianca,
+                )
+            except ValueError as erro_perfil:
+                return JsonResponse({'erro': str(erro_perfil)}, status=400)
         try:
             usuario.save()
         except NotUniqueError:
@@ -460,6 +624,138 @@ class ExportarUsuariosAdminView(View):
 
 class AssinantesAdminView(AdminTemplateView):
     template_name = 'assinantes.html'
+
+    def get(self, request):
+        return self.render_page(request)
+
+    def post(self, request):
+        nome = request.POST.get('nome_completo', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        senha = request.POST.get('senha', '')
+        confirmar_senha = request.POST.get('confirmar_senha', '')
+        pagamento_conta = request.POST.get('pagamento_conta', '').strip()
+        valor = request.POST.get('valor', '').strip()
+        crianca_nome = request.POST.get('crianca_nome_completo', '').strip()
+        erro = None
+
+        if not nome or not email or len(senha) < 8:
+            erro = 'Nome, e-mail e senha com no mínimo 8 caracteres são obrigatórios.'
+        elif senha != confirmar_senha:
+            erro = 'As senhas não conferem.'
+        elif Usuario.objects(email=email).first() is not None:
+            erro = 'Este e-mail já está cadastrado.'
+        else:
+            try:
+                valor_numerico = float(valor.replace(',', '.')) if valor else None
+            except ValueError:
+                valor_numerico = None
+                erro = 'O valor da assinatura é inválido.'
+
+            if erro is None:
+                try:
+                    perfil = perfil_crianca_do_formulario(request.POST, request.FILES)
+                    usuario = Usuario(
+                        nome_completo=nome,
+                        email=email,
+                        tipo_usuario='Responsavel',
+                        pagamento_conta=pagamento_conta or None,
+                        valor=valor_numerico,
+                        perfil_crianca=perfil,
+                    )
+                    usuario.senha = make_password(senha)
+                    usuario.save()
+                    TokenAcesso(usuario=usuario, chave=secrets.token_urlsafe(32)).save()
+                except ValueError as erro_perfil:
+                    erro = str(erro_perfil)
+                except NotUniqueError:
+                    erro = 'Este e-mail já está cadastrado.'
+                else:
+                    return redirect('assinantes')
+
+        return self.render_page(request, {
+            'erro_assinatura': erro,
+            'form_assinatura': {
+                'nome_completo': nome,
+                'email': email,
+                'pagamento_conta': pagamento_conta,
+                'valor': valor,
+                'crianca_nome_completo': crianca_nome,
+            },
+        })
+
+    def render_page(self, request, extra_context=None):
+        contexto = contexto_admin(request.admin_usuario)
+        tokens = list(TokenAcesso.objects.order_by('-criado_em'))
+        busca = request.GET.get('q', '').strip()
+        termo = busca.casefold()
+        assinantes = []
+        for token in tokens:
+            usuario = token.usuario
+            if termo and not any(
+                termo in (valor or '').casefold()
+                for valor in (usuario.nome_completo, usuario.email, usuario.ip_camera)
+            ):
+                continue
+            assinantes.append({
+                'token': token,
+                'usuario': usuario,
+                'camera': Camera.objects(responsavel=usuario).first(),
+            })
+
+        mes_atual = datetime.utcnow().month
+        ano_atual = datetime.utcnow().year
+        novas_assinaturas = sum(
+            1 for token in tokens
+            if token.criado_em and token.criado_em.month == mes_atual
+            and token.criado_em.year == ano_atual
+        )
+        contexto.update({
+            'assinantes': assinantes,
+            'busca': busca,
+            'assinaturas_ativas': len(tokens),
+            'novas_assinaturas': novas_assinaturas,
+            'sem_assinatura': max(len(contexto['usuarios']) - len(tokens), 0),
+        })
+        if extra_context:
+            contexto.update(extra_context)
+        return render(request, self.template_name, contexto)
+
+
+@method_decorator(administrador, name='dispatch')
+class ExportarAssinantesAdminView(View):
+    def get(self, request):
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = 'Assinaturas'
+        worksheet.append(['ID do usuário', 'Assinante', 'E-mail', 'Câmera', 'Data da assinatura', 'Status'])
+
+        for celula in worksheet[1]:
+            celula.font = Font(bold=True, color='FFFFFF')
+            celula.fill = PatternFill('solid', fgColor='167B8A')
+
+        for token in TokenAcesso.objects.order_by('-criado_em'):
+            usuario = token.usuario
+            camera = Camera.objects(responsavel=usuario).first()
+            worksheet.append([
+                str(usuario.id),
+                usuario.nome_completo or '',
+                usuario.email or '',
+                camera.nome_camara if camera else 'Não cadastrada',
+                token.criado_em.strftime('%d/%m/%Y %H:%M') if token.criado_em else '',
+                'Ativa',
+            ])
+
+        for coluna, largura in {'A': 26, 'B': 30, 'C': 34, 'D': 24, 'E': 24, 'F': 14}.items():
+            worksheet.column_dimensions[coluna].width = largura
+        worksheet.freeze_panes = 'A2'
+        arquivo = BytesIO()
+        workbook.save(arquivo)
+        resposta = HttpResponse(
+            arquivo.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        resposta['Content-Disposition'] = 'attachment; filename="assinaturas_neurai.xlsx"'
+        return resposta
 
 
 class RelatoriosAdminView(AdminTemplateView):
