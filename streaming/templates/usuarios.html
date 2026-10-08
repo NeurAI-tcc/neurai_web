@@ -1,7 +1,573 @@
-{% extends 'base.html' %}
-{% block title %}NeurAI | Usuários{% endblock %}
-{% block content %}
-<header class="mb-8"><p class="text-sm font-semibold text-cyan-600">Gestão da base</p><h1 class="mt-2 text-3xl font-bold text-neurai-ink">Usuários</h1><p class="mt-2 text-sm text-slate-500">Dados carregados do banco de dados.</p></header>
-<div class="mb-8 grid gap-5 md:grid-cols-3"><article class="rounded-2xl bg-white p-5 shadow-md"><p class="text-sm text-slate-500">Total de usuários</p><p class="mt-2 text-2xl font-bold text-neurai-ink">{{ total_usuarios }}</p></article><article class="rounded-2xl bg-white p-5 shadow-md"><p class="text-sm text-slate-500">Tokens ativos</p><p class="mt-2 text-2xl font-bold text-neurai-ink">{{ usuarios_ativos }}</p></article><article class="rounded-2xl bg-white p-5 shadow-md"><p class="text-sm text-slate-500">Câmeras configuradas</p><p class="mt-2 text-2xl font-bold text-neurai-ink">{{ total_cameras }}</p></article></div>
-<section class="overflow-hidden rounded-2xl bg-white shadow-md"><div class="flex flex-col justify-between gap-4 border-b border-slate-100 p-6 lg:flex-row lg:items-center"><div><h2 class="text-lg font-bold text-neurai-ink">Lista de usuários</h2><p class="mt-1 text-sm text-slate-500">{{ total_usuarios }} registros encontrados</p></div><div class="flex flex-col gap-3 sm:flex-row"><input type="search" placeholder="Buscar usuário..." class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100"><button class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600">↓ Exportar</button></div></div><div class="overflow-x-auto"><table class="w-full min-w-[760px] text-left text-sm"><thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-400"><tr><th class="px-6 py-4">Usuário</th><th class="px-6 py-4">Status</th><th class="px-6 py-4">E-mail</th><th class="px-6 py-4">Cadastro</th><th class="px-6 py-4"></th></tr></thead><tbody class="divide-y divide-slate-100">{% for usuario in usuarios %}<tr><td class="px-6 py-4"><div class="flex items-center gap-3"><div class="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-100 font-bold text-cyan-700">{{ usuario.nome_completo|slice:":2"|upper }}</div><div><p class="font-semibold text-neurai-ink">{{ usuario.nome_completo }}</p><p class="text-xs text-slate-400">{{ usuario.tipo_usuario }}</p></div></div></td><td class="px-6 py-4 text-emerald-600">● {% for token in tokens %}{% if token.usuario.id == usuario.id %}Ativo{% endif %}{% endfor %}</td><td class="px-6 py-4 text-slate-500">{{ usuario.email }}</td><td class="px-6 py-4 text-slate-500">{{ usuario.criado_em|date:"d M Y" }}</td><td class="px-6 py-4 text-right text-lg text-slate-400">⋮</td></tr>{% empty %}<tr><td colspan="5" class="px-6 py-12 text-center text-slate-400">Nenhum usuário cadastrado.</td></tr>{% endfor %}</tbody></table></div></section>
-{% endblock %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeurAI - Painel Administrativo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="m-0 min-h-screen bg-[#c6e2f3] font-sans text-gray-900">
+
+<div class="flex min-h-screen overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="fixed left-0 top-0 z-50 flex h-screen w-[226px] min-w-[226px] flex-col bg-[#082642] px-[15px] pb-[18px] pt-[27px] text-white">
+
+        <!-- LOGO -->
+        <div class="mb-[-30px] mt-[-50px] flex items-center gap-[7px] pl-[7px]">
+            <img src="{% static 'images/logo_deitada.png' %}" alt="NeurAI" class="h-[200px] w-[200px] rounded-[6px] object-contain">
+        </div>
+
+        <!-- MENU -->
+        <nav class="flex flex-col gap-1">
+
+            <a href="{% url 'dashboard' %}"
+               class="flex h-[31px] items-center gap-[9px] rounded-[6px] px-[9px] text-[14px] font-bold text-white transition hover:bg-[#164765]">
+                <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none">
+                    <path d="M3 10.5 12 3l9 7.5V21H3V10.5Z" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M9 21v-7h6v7" stroke="currentColor" stroke-width="1.8"/>
+                </svg>
+                Dashboard
+            </a>
+
+            <a href="{% url 'usuarios' %}"
+               class="flex h-[31px] items-center gap-[9px] rounded-[6px] px-[9px] bg-[#36abc0] text-[14px] text-white ">
+                <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24">
+                    <circle cx="12" cy="8" r="4" fill="currentColor"/>
+                    <path d="M4 21c0-4.2 3.6-7 8-7s8 2.8 8 7" fill="currentColor"/>
+                </svg>
+                Usuários
+            </a>
+
+            <a href="{% url 'assinantes' %}"
+               class="flex h-[31px] items-center gap-[9px] rounded-[6px] px-[9px] text-[14px] text-white transition hover:bg-[#164765]">
+                <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="5" width="18" height="14" rx="3" stroke="currentColor" stroke-width="1.7"/>
+                    <path d="M3 10h18" stroke="currentColor" stroke-width="1.7"/>
+                </svg>
+                Assinaturas
+            </a>
+
+            <a href="{% url 'relatorios' %}"
+               class="flex h-[31px] items-center gap-[9px] rounded-[6px] px-[9px] text-[14px] text-white transition hover:bg-[#164765]">
+                <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 3h8l5 5v13H6V3Z" stroke="currentColor" stroke-width="1.7"/>
+                    <path d="M14 3v5h5" stroke="currentColor" stroke-width="1.7"/>
+                </svg>
+                Relatórios
+            </a>
+
+            <a href="{% url 'financeiro' %}"
+               class="flex h-[31px] items-center gap-[9px] rounded-[6px] px-[9px] text-[14px] text-white transition hover:bg-[#164765]">
+                <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 3v18M16 7.5C15.3 6.5 14.1 6 12.5 6 10.3 6 8.5 7.2 8.5 9c0 4.5 8 2.5 8 7 0 1.9-1.7 3-4 3-1.8 0-3.3-.6-4.3-1.8"
+                          stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
+                Financeiro
+            </a>
+
+            <a href="{% url 'cadastros' %}"
+               class="flex h-[31px] items-center gap-[9px] rounded-[6px] px-[9px] text-[14px] text-white transition hover:bg-[#164765]">
+                <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none">
+                    <rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" stroke-width="1.7"/>
+                    <path d="M8 7h8M8 11h8M8 15h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
+                Cadastro
+            </a>
+        </nav>
+
+        <!-- ADMINISTRADOR -->
+        <div class="mt-[100px]">
+            <div class="mb-[7px] rounded-[6px] border border-[#17466a] px-[10px] py-[8px]">
+                <div class="text-[10px] leading-3">{{ admin_name }}</div>
+                <div class="text-[9px] leading-3 text-[#d5e4ec]">{{ admin_email }}</div>
+            </div>
+
+            <a href="{% url 'logout' %}" class="flex h-[28px] items-center gap-[9px] pl-[7px] text-[14px] text-white">
+                <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none">
+                    <path d="M10 4H5c-.6 0-1 .4-1 1v14c0 .6.4 1 1 1h5M14 8l4 4-4 4m4-4H9"
+                          stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Sair
+            </a>
+        </div>
+    </aside>
+
+
+    <!-- CONTEÚDO -->
+    <main class="relative ml-[226px] min-h-screen min-w-0 overflow-hidden bg-[#c6e2f3] px-5 pb-[100px] pt-[18px] w-screen">
+
+        <div class="relative z-10 ml-[30px] mr-[30px] mt-[30px]">
+
+            <!-- BOAS-VINDAS -->
+            <div class="mb-3 ml-px">
+                <h1 class="m-0 text-[30px] font-extrabold leading-6 mb-[10px] mt-[10px]">
+                    Usuários
+                </h1>
+                <p class="m-0 mt-[13px] text-[15px]">
+                    Gerencie todos os usuários da plataforma.
+                </p>
+            </div>
+
+            <!-- INDICADORES -->
+            <div class="mb-[15px] grid grid-cols-3 gap-[30px] mt-[20px]">
+
+                <!-- USUÁRIOS -->
+                <div class="flex min-h-[120px] items-center gap-3 rounded-[14px] bg-white px-[14px] py-[11px] shadow-[0_3px_3px_rgba(0,0,0,0.25)]">
+                    <div class="flex h-[80px] w-[80px] shrink-0 items-center justify-center rounded-[7px] bg-[#a8e8e7] text-[#009c9a]">
+                        <svg width="50" height="50" viewBox="0 0 61 61" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <g filter="url(#filter0_i_342_1735)">
+                          <g clip-path="url(#clip0_342_1735)">
+                          <path d="M40.7759 35.5848H20.224C16.8838 35.5889 13.6815 36.9176 11.3196 39.2795C8.95771 41.6414 7.62902 44.8436 7.62498 48.1839V61.0015H53.375V48.1839C53.3709 44.8436 52.0423 41.6414 49.6804 39.2795C47.3184 36.9176 44.1162 35.5889 40.7759 35.5848V35.5848Z" fill="#009B95"/>
+                          <path d="M30.5 30.5C38.9223 30.5 45.75 23.6723 45.75 15.25C45.75 6.82766 38.9223 0 30.5 0C22.0777 0 15.25 6.82766 15.25 15.25C15.25 23.6723 22.0777 30.5 30.5 30.5Z" fill="#009B95"/>
+                          </g>
+                          </g>
+                          <defs>
+                          <filter id="filter0_i_342_1735" x="0" y="0" width="61" height="65" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                          <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+                          <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+                          <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                          <feOffset dy="4"/>
+                          <feGaussianBlur stdDeviation="2"/>
+                          <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+                          <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+                          <feBlend mode="normal" in2="shape" result="effect1_innerShadow_342_1735"/>
+                          </filter>
+                          <clipPath id="clip0_342_1735">
+                          <rect width="61" height="61" fill="white"/>
+                          </clipPath>
+                          </defs>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-[15px] leading-[14px] mt-[0px]">Usuários cadastrados</div>
+                        <div class="text-[35px] leading-[23px] mt-[12px]">{{ total_usuarios }}</div>
+                        <div class="text-[12px] text-[#00a63c] mt-[10px]"> +{{ novos_usuarios }} este mês</div>
+                    </div>
+                </div>
+
+                <!-- NOVOS USUÁRIOS -->
+                <div class="flex min-h-[120px] items-center gap-3 rounded-[14px] bg-white px-[14px] py-[11px] shadow-[0_3px_3px_rgba(0,0,0,0.25)]">
+                    <div class="flex h-[80px] w-[80px] shrink-0 items-center justify-center rounded-[7px] bg-[#d1b6fa] text-[#5d19a9]">
+                        <svg class="h-[61px] w-[61px]" viewBox="0 0 24 24">
+                            <path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-[15px] leading-[14px] mt-[0px]">Novos usuários (mês)</div>
+                        <div class="text-[35px] leading-[23px] mt-[12px]">{{ novos_usuarios }}</div>
+                        <div class="text-[12px] text-[#00a63c] mt-[10px]">cadastros no mês</div>
+                    </div>
+                </div>
+
+                <!-- TOKENS -->
+                <div class="flex min-h-[91px] items-center gap-3 rounded-[14px] bg-white px-[14px] py-[11px] shadow-[0_3px_3px_rgba(0,0,0,0.25)]">
+                    <div class="flex h-[80px] w-[80px] shrink-0 items-center justify-center rounded-[7px] bg-[#b5d7fa] text-[#07518d]">
+                        <svg width="50" height="50" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M13.5417 33.333C15.2676 33.333 16.6667 31.9339 16.6667 30.208C16.6667 28.4821 15.2676 27.083 13.5417 27.083C11.8159 27.083 10.4167 28.4821 10.4167 30.208C10.4167 31.9339 11.8159 33.333 13.5417 33.333Z" fill="#00386F"/>
+                            <path d="M38.5417 6.25H11.4583C8.42041 6.25331 5.50786 7.46158 3.35972 9.60972C1.21159 11.7579 0.00330869 14.6704 0 17.7083L0 32.2917C0.00330869 35.3296 1.21159 38.2421 3.35972 40.3903C5.50786 42.5384 8.42041 43.7467 11.4583 43.75H38.5417C41.5796 43.7467 44.4921 42.5384 46.6403 40.3903C48.7884 38.2421 49.9967 35.3296 50 32.2917V17.7083C49.9967 14.6704 48.7884 11.7579 46.6403 9.60972C44.4921 7.46158 41.5796 6.25331 38.5417 6.25ZM11.4583 12.5H38.5417C39.742 12.5002 40.9054 12.9151 41.8351 13.6743C42.7648 14.4335 43.4037 15.4906 43.6437 16.6667H6.35625C6.59631 15.4906 7.23523 14.4335 8.16492 13.6743C9.09461 12.9151 10.258 12.5002 11.4583 12.5V12.5ZM38.5417 37.5H11.4583C10.077 37.5 8.75224 36.9513 7.77549 35.9745C6.79873 34.9978 6.25 33.673 6.25 32.2917V22.9167H43.75V32.2917C43.75 33.673 43.2013 34.9978 42.2245 35.9745C41.2478 36.9513 39.923 37.5 38.5417 37.5Z" fill="#00386F"/>
+                        </svg>
+
+                    </div>
+                    <div>
+                        <div class="text-[10px] leading-[14px] mt-[0px]">Assinatutas ativas</div>
+                        <div class="text-[35px] leading-[23px] mt-[12px]">{{ assinaturas_ativas }}</div>
+                        <div class="text-[12px] text-[#00a63c] mt-[10px]">tokens ativos</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full bg-white rounded-[20px] shadow-md p-4">
+
+        <!-- TÍTULO -->
+        <h2 class="text-[16px] font-semibold text-gray-900 mb-4">
+            Lista de usuários
+        </h2>
+
+        <!-- BARRA DE AÇÕES -->
+        <div class="flex items-center gap-4 mb-3">
+
+            <!-- BUSCA -->
+            <div class="relative flex-1 max-w-[550px]">
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ busca }}"
+                    form="busca-usuarios"
+                    placeholder="Buscar por nome, e-mail ou telefone...."
+                    class="w-full h-[52px] border border-gray-300 rounded-lg
+                           px-4 pr-12 text-sm text-gray-700
+                           outline-none focus:border-gray-400">
+
+                <svg class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g clip-path="url(#clip0_342_1803)">
+                    <path d="M19.6353 17.8733L15.7663 14.0035C18.664 10.1339 17.8761 4.64803 14.0065 1.75041C10.137 -1.14721 4.65114 -0.359401 1.75349 3.51013C-1.14417 7.37967 -0.356277 12.8656 3.51325 15.7632C6.62212 18.0912 10.8933 18.0922 14.0033 15.7657L17.8739 19.6363C18.3603 20.1227 19.1489 20.1227 19.6353 19.6363C20.1217 19.1499 20.1217 18.3613 19.6353 17.8749V17.8733ZM8.79368 15.0186C5.3554 15.0186 2.56814 12.2314 2.56814 8.79307C2.56814 5.35478 5.35544 2.56752 8.79368 2.56752C12.2319 2.56752 15.0192 5.35478 15.0192 8.79307C15.0156 12.2298 12.2305 15.015 8.79368 15.0186Z" fill="black"/>
+                    </g>
+                    <defs>
+                    <clipPath id="clip0_342_1803">
+                    <rect width="20" height="20" fill="white"/>
+                    </clipPath>
+                    </defs>
+                </svg>
+
+            </div>
+
+            <form id="busca-usuarios" method="get" class="hidden"></form>
+
+            <!-- EXPORTAR -->
+            <a href="{% url 'exportar_usuarios' %}"
+                class="h-[52px] px-6 border border-gray-300 rounded-lg
+                       bg-white flex items-center gap-2
+                       text-sm text-gray-900 hover:bg-gray-50">
+
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g filter="url(#filter0_i_342_1816)">
+                    <g clip-path="url(#clip0_342_1816)">
+                    <path d="M5.53179 11.0625C6.63013 12.1609 8.41091 12.1609 9.50928 11.0625L9.50931 11.0625L11.5168 9.05499C11.8892 8.69528 11.8995 8.10179 11.5398 7.72937C11.1801 7.35694 10.5866 7.34663 10.2142 7.70634C10.2064 7.71387 10.1987 7.72157 10.1912 7.72937L8.45181 9.46811L8.43742 0.9375C8.43742 0.419736 8.01768 0 7.49992 0C6.98216 0 6.56242 0.419736 6.56242 0.9375L6.57555 9.45437L4.84993 7.72875C4.47751 7.36904 3.88401 7.37936 3.52431 7.75178C3.17342 8.11509 3.17342 8.69106 3.52431 9.05437L5.53179 11.0625Z" fill="black"/>
+                    <path d="M14.0625 9.0625C13.5447 9.0625 13.125 9.48224 13.125 10V12.8694C13.1246 13.0104 13.0104 13.1247 12.8694 13.125H2.13062C1.98958 13.1246 1.87532 13.0104 1.875 12.8694V10C1.875 9.48224 1.45526 9.0625 0.9375 9.0625C0.419736 9.0625 0 9.48224 0 10V12.8694C0.00137695 14.0455 0.954492 14.9986 2.13062 15H12.8694C14.0455 14.9986 14.9986 14.0455 15 12.8694V10C15 9.48224 14.5803 9.0625 14.0625 9.0625Z" fill="black"/>
+                    </g>
+                    </g>
+                    <defs>
+                    <filter id="filter0_i_342_1816" x="0" y="0" width="15" height="19" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                    <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+                    <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+                    <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                    <feOffset dy="4"/>
+                    <feGaussianBlur stdDeviation="2"/>
+                    <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+                    <feBlend mode="normal" in2="shape" result="effect1_innerShadow_342_1816"/>
+                    </filter>
+                    <clipPath id="clip0_342_1816">
+                    <rect width="15" height="15" fill="white"/>
+                    </clipPath>
+                    </defs>
+                </svg>
+
+
+                Exportar
+            </a>
+
+            <!-- ADICIONAR ADMINISTRADOR -->
+            <button type="button" onclick="document.getElementById('modal-cadastro').classList.remove('hidden')"
+                class="h-[52px] px-4 rounded-lg
+                       bg-[#3aa8bd] text-white
+                       flex items-center gap-2
+                       text-sm font-medium
+                       hover:bg-[#329caf]">
+
+                <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g clip-path="url(#clip0_342_1821)">
+                    <path d="M11.5443 9.66937L11.5447 1.32629C11.5447 0.808373 11.1249 0.388518 10.607 0.388539C10.089 0.388539 9.66918 0.808393 9.6692 1.32629L9.66962 9.66937L1.32656 9.66893C0.808641 9.66893 0.388786 10.0888 0.388807 10.6067C0.388827 11.1246 0.808662 11.5445 1.32656 11.5444L9.66962 11.544L9.6692 19.8871C9.6692 20.405 10.0891 20.8249 10.607 20.8248C11.1249 20.8248 11.5447 20.405 11.5447 19.8871L11.5443 11.544L19.8873 11.5445C20.4053 11.5445 20.8251 11.1246 20.8251 10.6067C20.8251 10.0888 20.4052 9.66893 19.8873 9.66896L11.5443 9.66937Z" fill="white"/>
+                    </g>
+                    <defs>
+                    <clipPath id="clip0_342_1821">
+                    <rect width="15" height="15" fill="white" transform="translate(0 10.6067) rotate(-45)"/>
+                    </clipPath>
+                    </defs>
+                </svg>
+
+
+                <span class="leading-4">
+                    Adicionar
+                    administrador
+                </span>
+
+            </button>
+
+        </div>
+
+        <!-- TABELA -->
+        <div class="w-full overflow-hidden">
+
+            <table class="w-full border-collapse">
+
+                <!-- CABEÇALHO -->
+                <thead>
+
+                    <tr class="bg-[#d9d9d9] h-[41px]">
+
+                        <th class="text-center font-medium text-sm text-gray-900 w-[28%]">
+                            Usuário
+                        </th>
+
+                        <th class="text-center font-medium text-sm text-gray-900 w-[18%]">
+                            Tipo
+                        </th>
+
+                        <th class="text-center font-medium text-sm text-gray-900 w-[25%]">
+                            E-mail
+                        </th>
+
+                        <th class="text-center font-medium text-sm text-gray-900 w-[20%]">
+                            Cadastro
+                        </th>
+
+                        <th class="w-[9%]"></th>
+
+                    </tr>
+
+                </thead>
+
+                <!-- CORPO -->
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr class="h-[72px] border-b border-gray-100">
+                        <td class="px-1">
+                            <div class="flex items-center gap-3">
+                                <div class="flex h-[43px] w-[43px] shrink-0 items-center justify-center rounded-full bg-[#d1f0f2] text-sm font-semibold text-[#167b8a]">
+                                    {{ usuario.nome_completo|first|upper }}
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">{{ usuario.nome_completo }}</p>
+                                    <p class="mt-1 text-xs text-gray-500">ID: {{ usuario.id }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-center text-sm text-gray-900">{{ usuario.tipo_usuario }}</td>
+                        <td class="text-center text-sm text-gray-900">{{ usuario.email }}</td>
+                        <td class="text-center text-sm text-gray-900">{{ usuario.criado_em|date:'d/m/Y' }}</td>
+                        <td>
+                                <button type="button" title="Visualizar usuário" data-detalhe-url="{% url 'detalhar_usuario' usuario.id %}" onclick="abrirDetalhesUsuario(this.dataset.detalheUrl)"
+                                    class="flex h-[34px] w-[34px] items-center justify-center rounded-lg bg-[#dfe2e4] hover:bg-gray-300">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <g clip-path="url(#clip0_347_1904)">
+                                    <path d="M12 15.9982C14.2083 15.9982 15.9985 14.208 15.9985 11.9997C15.9985 9.79141 14.2083 8.00122 12 8.00122C9.79165 8.00122 8.00146 9.79141 8.00146 11.9997C8.00146 14.208 9.79165 15.9982 12 15.9982Z" fill="#374957"/>
+                                    <path d="M23.2669 9.41995C21.7164 6.89489 18.1897 2.65845 12 2.65845C5.81034 2.65845 2.28364 6.89489 0.733219 9.41995C-0.244325 11.0011 -0.244325 12.9989 0.733219 14.5801C2.28364 17.1051 5.81034 21.3416 12 21.3416C18.1897 21.3416 21.7164 17.1051 23.2669 14.5801C24.2444 12.9989 24.2444 11.0011 23.2669 9.41995ZM12 17.9978C8.68758 17.9978 6.00226 15.3124 6.00226 12C6.00226 8.68752 8.68758 6.00221 12 6.00221C15.3125 6.00221 17.9978 8.68752 17.9978 12C17.9945 15.3111 15.3111 17.9944 12 17.9978Z" fill="#374957"/>
+                                    </g>
+                                    <defs>
+                                    <clipPath id="clip0_347_1904">
+                                    <rect width="24" height="24" fill="white"/>
+                                    </clipPath>
+                                    </defs>
+                                </svg>
+
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="py-10 text-center text-sm text-gray-500">
+                            Nenhum usuário encontrado.
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <!-- CADASTRO DE USUÁRIO -->
+    <div id="modal-cadastro" class="{% if not erro_cadastro %}hidden{% endif %} fixed inset-0 z-[60] flex items-center justify-center bg-[#082642]/60 px-4">
+        <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+            <div class="mb-5 flex items-start justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">Adicionar administrador</h2>
+                    <p class="mt-1 text-sm text-gray-500">Cadastre um administrador para acessar a plataforma.</p>
+                </div>
+                <button type="button" onclick="document.getElementById('modal-cadastro').classList.add('hidden')" class="text-2xl leading-none text-gray-500" aria-label="Fechar">&times;</button>
+            </div>
+
+            {% if erro_cadastro %}
+            <div class="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ erro_cadastro }}</div>
+            {% endif %}
+
+            <form method="post" action="{% url 'usuarios' %}" class="grid gap-4">
+                {% csrf_token %}
+                <label class="grid gap-1 text-sm font-medium text-gray-700">Nome completo
+                    <input required name="nome_completo" value="{{ form_cadastro.nome_completo|default:'' }}" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]" autocomplete="name">
+                </label>
+                <label class="grid gap-1 text-sm font-medium text-gray-700">E-mail
+                    <input required type="email" name="email" value="{{ form_cadastro.email|default:'' }}" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]" autocomplete="email">
+                </label>
+                <label class="grid gap-1 text-sm font-medium text-gray-700">IP da câmera <span class="font-normal text-gray-500">(opcional)</span>
+                    <input name="ip_camera" value="{{ form_cadastro.ip_camera|default:'' }}" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]" placeholder="Ex.: 192.168.0.50">
+                </label>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <label class="grid gap-1 text-sm font-medium text-gray-700">Senha
+                        <input required type="password" name="senha" minlength="8" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]" autocomplete="new-password">
+                    </label>
+                    <label class="grid gap-1 text-sm font-medium text-gray-700">Confirmar senha
+                        <input required type="password" name="confirmar_senha" minlength="8" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]" autocomplete="new-password">
+                    </label>
+                </div>
+                <div class="mt-2 flex justify-end gap-3">
+                    <button type="button" onclick="document.getElementById('modal-cadastro').classList.add('hidden')" class="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" class="rounded-lg bg-[#3aa8bd] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#329caf]">Salvar administrador</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- VISUALIZAÇÃO DO USUÁRIO -->
+    <div id="modal-detalhes" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-[#082642]/60 px-4">
+        <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+            <div class="mb-5 flex items-start justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">Informações do administrador</h2>
+                    <p id="detalhes-status" class="mt-1 text-sm text-gray-500">Carregando informações...</p>
+                </div>
+                <button type="button" onclick="fecharDetalhesUsuario()" class="text-2xl leading-none text-gray-500" aria-label="Fechar">&times;</button>
+            </div>
+            <div id="detalhes-conteudo" class="grid gap-3 text-sm text-gray-700"></div>
+            <div id="detalhes-edicao" class="hidden grid gap-4 text-sm text-gray-700">
+                <label class="grid gap-1 font-medium">Nome completo
+                    <input id="editar-nome" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]">
+                </label>
+                <label class="grid gap-1 font-medium">E-mail
+                    <input id="editar-email" type="email" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]">
+                </label>
+                <label class="grid gap-1 font-medium">IP da câmera <span class="font-normal text-gray-500">(opcional)</span>
+                    <input id="editar-ip-camera" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]">
+                </label>
+            </div>
+            <div id="detalhes-acoes" class="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+                <button type="button" onclick="editarUsuario()" class="rounded-lg bg-[#3aa8bd] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#329caf]">Editar</button>
+                <button type="button" onclick="excluirUsuario()" class="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-700">Excluir</button>
+            </div>
+            <div id="edicao-acoes" class="hidden mt-6 justify-end gap-3 border-t border-gray-100 pt-4">
+                <button type="button" onclick="cancelarEdicao()" class="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
+                <button type="button" onclick="salvarEdicaoUsuario()" class="rounded-lg bg-[#3aa8bd] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#329caf]">Salvar alterações</button>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+        </div>
+
+
+        <!-- ONDAS: feitas apenas com classes Tailwind -->
+        <div class="pointer-events-none fixed bottom-0 left-0 right-0 z-0 h-[145px] overflow-hidden">
+          <!-- imagem das ondas -->
+          <img src="{% static 'images/ondas.png' %}" alt="Ondas" class="absolute bottom-0 left-0 right-0 h-full w-full object-cover">
+
+        </div>
+
+    </main>
+
+</div>
+
+<script>
+    let usuarioDetalheUrl = '';
+    let usuarioDetalheDados = null;
+
+    function escaparHtml(valor) {
+        const elemento = document.createElement('span');
+        elemento.textContent = valor ?? '';
+        return elemento.innerHTML;
+    }
+
+    async function abrirDetalhesUsuario(url) {
+        const modal = document.getElementById('modal-detalhes');
+        const status = document.getElementById('detalhes-status');
+        const conteudo = document.getElementById('detalhes-conteudo');
+        modal.classList.remove('hidden');
+        usuarioDetalheUrl = url;
+        usuarioDetalheDados = null;
+        cancelarEdicao();
+        status.textContent = 'Carregando informações...';
+        conteudo.innerHTML = '';
+        document.getElementById('detalhes-acoes').classList.add('hidden');
+
+        try {
+            const resposta = await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+            const dados = await resposta.json();
+            if (!resposta.ok) {
+                throw new Error(dados.erro || 'Não foi possível carregar o usuário.');
+            }
+            usuarioDetalheDados = dados;
+            status.textContent = dados.email;
+            conteudo.innerHTML = `
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="rounded-lg bg-gray-50 p-3"><span class="block text-xs text-gray-500">Nome completo</span><strong>${escaparHtml(dados.nome_completo)}</strong></div>
+                    <div class="rounded-lg bg-gray-50 p-3"><span class="block text-xs text-gray-500">Tipo</span><strong>${escaparHtml(dados.tipo_usuario)}</strong></div>
+                    <div class="rounded-lg bg-gray-50 p-3"><span class="block text-xs text-gray-500">Cadastro</span><strong>${escaparHtml(dados.criado_em)}</strong></div>
+                    <div class="rounded-lg bg-gray-50 p-3"><span class="block text-xs text-gray-500">ID</span><strong class="break-all">${escaparHtml(dados.id)}</strong></div>
+                </div>
+                <div class="rounded-lg border border-gray-100 p-3"><span class="block text-xs text-gray-500">IP da câmera</span><strong>${escaparHtml(dados.ip_camera)}</strong></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="rounded-lg border border-gray-100 p-3"><span class="block text-xs text-gray-500">Câmera</span><strong>${escaparHtml(dados.camera)}</strong></div>
+                    <div class="rounded-lg border border-gray-100 p-3"><span class="block text-xs text-gray-500">Assinatura</span><strong>${escaparHtml(dados.assinatura_ativa ? 'Ativa' : 'Não cadastrada')}</strong></div>
+                </div>
+                <div class="rounded-lg border border-gray-100 p-3"><span class="block text-xs text-gray-500">Perfil vinculado</span><strong>${escaparHtml(dados.perfil_crianca)}</strong></div>
+            `;
+            document.getElementById('detalhes-acoes').classList.remove('hidden');
+        } catch (erro) {
+            status.textContent = 'Erro';
+            conteudo.innerHTML = `<div class="rounded-lg bg-red-50 px-4 py-3 text-red-700">${escaparHtml(erro.message)}</div>`;
+        }
+    }
+
+    function editarUsuario() {
+        if (!usuarioDetalheDados) return;
+        document.getElementById('editar-nome').value = usuarioDetalheDados.nome_completo || '';
+        document.getElementById('editar-email').value = usuarioDetalheDados.email || '';
+        document.getElementById('editar-ip-camera').value = usuarioDetalheDados.ip_camera === 'Não informado' ? '' : (usuarioDetalheDados.ip_camera || '');
+        document.getElementById('detalhes-conteudo').classList.add('hidden');
+        document.getElementById('detalhes-acoes').classList.add('hidden');
+        document.getElementById('detalhes-edicao').classList.remove('hidden');
+        document.getElementById('edicao-acoes').classList.remove('hidden');
+    }
+
+    function cancelarEdicao() {
+        document.getElementById('detalhes-conteudo').classList.remove('hidden');
+        document.getElementById('detalhes-edicao').classList.add('hidden');
+        document.getElementById('detalhes-acoes').classList.remove('hidden');
+        document.getElementById('edicao-acoes').classList.add('hidden');
+    }
+
+    async function salvarEdicaoUsuario() {
+        const dados = new FormData();
+        dados.append('acao', 'editar');
+        dados.append('nome_completo', document.getElementById('editar-nome').value);
+        dados.append('email', document.getElementById('editar-email').value);
+        dados.append('ip_camera', document.getElementById('editar-ip-camera').value);
+        await enviarAcaoUsuario(dados, 'Administrador atualizado com sucesso.');
+    }
+
+    async function excluirUsuario() {
+        if (!confirm('Tem certeza que deseja excluir este administrador?')) return;
+        const dados = new FormData();
+        dados.append('acao', 'excluir');
+        const sucesso = await enviarAcaoUsuario(dados);
+        if (sucesso) window.location.reload();
+    }
+
+    async function enviarAcaoUsuario(dados, mensagemSucesso) {
+        const status = document.getElementById('detalhes-status');
+        const token = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        try {
+            const resposta = await fetch(usuarioDetalheUrl, {
+                method: 'POST',
+                headers: {'X-CSRFToken': token, 'X-Requested-With': 'XMLHttpRequest'},
+                body: dados,
+            });
+            const resultado = await resposta.json();
+            if (!resposta.ok) throw new Error(resultado.erro || 'Não foi possível concluir a ação.');
+            if (mensagemSucesso) {
+                await abrirDetalhesUsuario(usuarioDetalheUrl);
+                document.getElementById('detalhes-status').textContent = mensagemSucesso;
+            }
+            return true;
+        } catch (erro) {
+            status.textContent = erro.message;
+            return false;
+        }
+    }
+
+    function fecharDetalhesUsuario() {
+        document.getElementById('modal-detalhes').classList.add('hidden');
+    }
+</script>
+
+</body>
+</html>

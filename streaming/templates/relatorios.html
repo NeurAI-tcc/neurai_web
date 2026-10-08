@@ -1,7 +1,18 @@
-{% extends 'base.html' %}
-{% block title %}NeurAI | Relatórios{% endblock %}
-{% block content %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>NeurAI | Relatórios</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-[#c6e2f3] text-slate-900">
+<main class="min-h-screen p-6 md:p-10">
+<div class="mx-auto max-w-7xl">
 <header class="mb-8"><p class="text-sm font-semibold text-cyan-600">Indicadores da operação</p><h1 class="mt-2 text-3xl font-bold text-neurai-ink">Relatórios</h1><p class="mt-2 text-sm text-slate-500">Relatórios gerados e armazenados no MongoDB.</p></header>
 <div class="mb-8 grid gap-5 md:grid-cols-3"><article class="rounded-2xl bg-white p-5 shadow-md"><p class="text-sm text-slate-500">Relatórios gerados</p><p class="mt-2 text-2xl font-bold text-neurai-ink">{{ relatorios|length }}</p></article><article class="rounded-2xl bg-white p-5 shadow-md"><p class="text-sm text-slate-500">Alertas analisados</p><p class="mt-2 text-2xl font-bold text-neurai-ink">{{ total_alertas }}</p></article><article class="rounded-2xl bg-white p-5 shadow-md"><p class="text-sm text-slate-500">Usuários monitorados</p><p class="mt-2 text-2xl font-bold text-neurai-ink">{{ total_usuarios }}</p></article></div>
 <section class="overflow-hidden rounded-2xl bg-white shadow-md"><div class="flex items-center justify-between border-b border-slate-100 p-6"><div><h2 class="text-lg font-bold text-neurai-ink">Relatórios recentes</h2><p class="mt-1 text-sm text-slate-500">Registros da coleção relatorios</p></div><button class="rounded-xl bg-gradient-to-r from-blue-500 to-cyan-400 px-4 py-2.5 text-sm font-bold text-white">Exportar</button></div><div class="overflow-x-auto"><table class="w-full min-w-[760px] text-left text-sm"><thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-400"><tr><th class="px-6 py-4">Mês</th><th class="px-6 py-4">Responsável</th><th class="px-6 py-4">Crises</th><th class="px-6 py-4">Horário de pico</th><th class="px-6 py-4">Geração</th></tr></thead><tbody class="divide-y divide-slate-100">{% for relatorio in relatorios %}<tr><td class="px-6 py-4 font-semibold text-neurai-ink">{{ relatorio.mes_referencia }}</td><td class="px-6 py-4 text-slate-500">{{ relatorio.responsavel.nome_completo }}</td><td class="px-6 py-4 text-slate-500">{{ relatorio.total_crises_mes }}</td><td class="px-6 py-4 text-slate-500">{{ relatorio.horario_pico_crises|default:"Não informado" }}</td><td class="px-6 py-4 text-slate-500">{{ relatorio.data_geracao|date:"d M Y H:i" }}</td></tr>{% empty %}<tr><td colspan="5" class="px-6 py-12 text-center text-slate-400">Nenhum relatório gerado.</td></tr>{% endfor %}</tbody></table></div></section>
-{% endblock %}
+</div>
+</main>
+</body>
+</html>

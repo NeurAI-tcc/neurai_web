@@ -1,15 +1,19 @@
 import json
 import secrets
+from io import BytesIO
 from datetime import datetime
 from functools import wraps
 
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views import View
 from django.shortcuts import redirect, render
 from django.utils.decorators import method_decorator
+from mongoengine.errors import NotUniqueError, ValidationError
 
 from .models import Usuario, TokenAcesso, Alerta, Camera, Relatorio
 
@@ -305,6 +309,153 @@ class AdminTemplateView(View):
 
 class UsuariosAdminView(AdminTemplateView):
     template_name = 'usuarios.html'
+
+    def get(self, request):
+        return self.render_page(request)
+
+    def post(self, request):
+        nome = request.POST.get('nome_completo', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        senha = request.POST.get('senha', '')
+        confirmar_senha = request.POST.get('confirmar_senha', '')
+        ip_camera = request.POST.get('ip_camera', '').strip()
+        erro = None
+
+        if not nome or not email or len(senha) < 8:
+            erro = 'Nome, e-mail e senha com no mínimo 8 caracteres são obrigatórios.'
+        elif senha != confirmar_senha:
+            erro = 'As senhas não conferem.'
+        elif Usuario.objects(email=email).first() is not None:
+            erro = 'Este e-mail já está cadastrado.'
+        else:
+            usuario = Usuario(
+                nome_completo=nome,
+                email=email,
+                tipo_usuario='Admin',
+                ip_camera=ip_camera or None,
+            )
+            usuario.senha = make_password(senha)
+            try:
+                usuario.save()
+            except NotUniqueError:
+                erro = 'Este e-mail já está cadastrado.'
+            else:
+                return redirect('usuarios')
+
+        return self.render_page(request, {
+            'erro_cadastro': erro,
+            'form_cadastro': {
+                'nome_completo': nome,
+                'email': email,
+                'ip_camera': ip_camera,
+            },
+        })
+
+    def render_page(self, request, extra_context=None):
+        contexto = contexto_admin(request.admin_usuario)
+        busca = request.GET.get('q', '').strip()
+        if busca:
+            termo = busca.casefold()
+            contexto['usuarios'] = [
+                usuario for usuario in contexto['usuarios']
+                if termo in (usuario.nome_completo or '').casefold()
+                or termo in (usuario.email or '').casefold()
+                or termo in (usuario.ip_camera or '').casefold()
+            ]
+        contexto['busca'] = busca
+        if extra_context:
+            contexto.update(extra_context)
+        return render(request, self.template_name, contexto)
+
+
+@method_decorator(administrador, name='dispatch')
+class DetalharUsuarioAdminView(View):
+    def get(self, request, usuario_id):
+        try:
+            usuario = Usuario.objects.get(id=usuario_id)
+        except (Usuario.DoesNotExist, ValidationError, ValueError):
+            return JsonResponse({'erro': 'Usuário não encontrado.'}, status=404)
+
+        camera = Camera.objects(responsavel=usuario).first()
+        return JsonResponse({
+            'id': str(usuario.id),
+            'nome_completo': usuario.nome_completo,
+            'email': usuario.email,
+            'tipo_usuario': usuario.tipo_usuario,
+            'ip_camera': usuario.ip_camera or 'Não informado',
+            'criado_em': usuario.criado_em.strftime('%d/%m/%Y %H:%M') if usuario.criado_em else 'Não informado',
+            'assinatura_ativa': TokenAcesso.objects(usuario=usuario).first() is not None,
+            'camera': camera.nome_camara if camera else 'Não cadastrada',
+            'perfil_crianca': usuario.perfil_crianca.nome_completo if usuario.perfil_crianca else 'Não informado',
+        })
+
+    def post(self, request, usuario_id):
+        try:
+            usuario = Usuario.objects.get(id=usuario_id)
+        except (Usuario.DoesNotExist, ValidationError, ValueError):
+            return JsonResponse({'erro': 'Usuário não encontrado.'}, status=404)
+
+        acao = request.POST.get('acao')
+        if acao == 'excluir':
+            if str(usuario.id) == str(request.admin_usuario.id):
+                return JsonResponse({'erro': 'Você não pode excluir o administrador da sessão atual.'}, status=400)
+            usuario.delete()
+            return JsonResponse({'sucesso': True})
+
+        if acao != 'editar':
+            return JsonResponse({'erro': 'Ação inválida.'}, status=400)
+
+        nome = request.POST.get('nome_completo', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        ip_camera = request.POST.get('ip_camera', '').strip()
+        if not nome or not email:
+            return JsonResponse({'erro': 'Nome e e-mail são obrigatórios.'}, status=400)
+        if Usuario.objects(email=email, id__ne=usuario.id).first() is not None:
+            return JsonResponse({'erro': 'Este e-mail já está cadastrado.'}, status=409)
+
+        usuario.nome_completo = nome
+        usuario.email = email
+        usuario.ip_camera = ip_camera or None
+        try:
+            usuario.save()
+        except NotUniqueError:
+            return JsonResponse({'erro': 'Este e-mail já está cadastrado.'}, status=409)
+        return JsonResponse({'sucesso': True})
+
+
+@method_decorator(administrador, name='dispatch')
+class ExportarUsuariosAdminView(View):
+    def get(self, request):
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = 'Usuários'
+        worksheet.append(['ID', 'Nome completo', 'Tipo', 'E-mail', 'IP da câmera', 'Data de cadastro'])
+
+        for celula in worksheet[1]:
+            celula.font = Font(bold=True, color='FFFFFF')
+            celula.fill = PatternFill('solid', fgColor='167B8A')
+
+        for usuario in Usuario.objects.order_by('-criado_em'):
+            worksheet.append([
+                str(usuario.id),
+                usuario.nome_completo or '',
+                usuario.tipo_usuario or '',
+                usuario.email or '',
+                usuario.ip_camera or '',
+                usuario.criado_em.strftime('%d/%m/%Y %H:%M') if usuario.criado_em else '',
+            ])
+
+        for coluna, largura in {'A': 26, 'B': 30, 'C': 18, 'D': 34, 'E': 20, 'F': 22}.items():
+            worksheet.column_dimensions[coluna].width = largura
+        worksheet.freeze_panes = 'A2'
+        arquivo = BytesIO()
+        workbook.save(arquivo)
+        resposta = HttpResponse(
+            arquivo.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        resposta['Content-Disposition'] = 'attachment; filename="usuarios_neurai.xlsx"'
+        return resposta
 
 
 class AssinantesAdminView(AdminTemplateView):
