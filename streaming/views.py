@@ -879,6 +879,84 @@ class RelatoriosAdminView(AdminTemplateView):
 class FinanceiroAdminView(AdminTemplateView):
     template_name = 'financeiro.html'
 
+    def get(self, request):
+        contexto = contexto_admin(request.admin_usuario)
+        busca = request.GET.get('busca', '').strip()
+        termo = busca.casefold()
+        tokens_por_usuario = {
+            str(getattr(token.usuario, 'id', token.usuario))
+            for token in TokenAcesso.objects.no_dereference()
+        }
+        assinaturas = []
+
+        for usuario in Usuario.objects(tipo_usuario='Responsavel').order_by('-criado_em'):
+            if termo and not any(
+                termo in (valor or '').casefold()
+                for valor in (usuario.nome_completo, usuario.email, usuario.pagamento_conta)
+            ):
+                continue
+            assinaturas.append({
+                'id': str(usuario.id),
+                'nome': usuario.nome_completo,
+                'email': usuario.email,
+                'forma_pagamento': usuario.pagamento_conta or 'Não informado',
+                'valor': usuario.valor,
+                'status': 'Pago' if str(usuario.id) in tokens_por_usuario else 'Pendente',
+            })
+
+        contexto.update({
+            'assinaturas': assinaturas,
+            'busca': busca,
+            'assinaturas_ativas': sum(
+                assinatura['status'] == 'Pago' for assinatura in assinaturas
+            ),
+        })
+        return render(request, self.template_name, contexto)
+
+
+@method_decorator(administrador, name='dispatch')
+class ExportarReceitasAdminView(View):
+    def get(self, request):
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = 'Receitas'
+        worksheet.append([
+            'ID do usuário', 'Neurodivergente', 'E-mail',
+            'Forma de pagamento', 'Valor', 'Status',
+        ])
+
+        tokens_por_usuario = {
+            str(getattr(token.usuario, 'id', token.usuario))
+            for token in TokenAcesso.objects.no_dereference()
+        }
+        for celula in worksheet[1]:
+            celula.font = Font(bold=True, color='FFFFFF')
+            celula.fill = PatternFill('solid', fgColor='167B8A')
+
+        for usuario in Usuario.objects(tipo_usuario='Responsavel').order_by('-criado_em'):
+            worksheet.append([
+                str(usuario.id),
+                usuario.nome_completo or '',
+                usuario.email or '',
+                usuario.pagamento_conta or 'Não informado',
+                usuario.valor if usuario.valor is not None else '',
+                'Pago' if str(usuario.id) in tokens_por_usuario else 'Pendente',
+            ])
+
+        for coluna, largura in {
+            'A': 26, 'B': 30, 'C': 34, 'D': 24, 'E': 14, 'F': 14,
+        }.items():
+            worksheet.column_dimensions[coluna].width = largura
+        worksheet.freeze_panes = 'A2'
+        arquivo = BytesIO()
+        workbook.save(arquivo)
+        resposta = HttpResponse(
+            arquivo.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        resposta['Content-Disposition'] = 'attachment; filename="receitas_neurai.xlsx"'
+        return resposta
+
 
 class CadastrosAdminView(AdminTemplateView):
     template_name = 'cadastros.html'
