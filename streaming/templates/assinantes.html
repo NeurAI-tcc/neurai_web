@@ -50,15 +50,6 @@
                 Assinaturas
             </a>
 
-            <a href="{% url 'relatorios' %}"
-               class="flex h-[31px] items-center gap-[9px] rounded-[6px] px-[9px] text-[14px] text-white transition hover:bg-[#164765]">
-                <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none">
-                    <path d="M6 3h8l5 5v13H6V3Z" stroke="currentColor" stroke-width="1.7"/>
-                    <path d="M14 3v5h5" stroke="currentColor" stroke-width="1.7"/>
-                </svg>
-                Relatórios
-            </a>
-
             <a href="{% url 'financeiro' %}"
                class="flex h-[31px] items-center gap-[9px] rounded-[6px] px-[9px] text-[14px] text-white transition hover:bg-[#164765]">
                 <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none">
@@ -166,9 +157,9 @@
 
                     </div>
                     <div>
-                        <div class="text-[15px] leading-[14px] mt-[0px]">Assinaturas ativas</div>
+                        <div class="text-[15px] leading-[14px] mt-[0px]">Responsáveis cadastrados</div>
                         <div class="text-[35px] leading-[23px] mt-[12px]">{{ assinaturas_ativas }}</div>
-                        <div class="text-[12px] text-[#00a63c] mt-[10px]">ativas no momento</div>
+                        <div class="text-[12px] text-[#00a63c] mt-[10px]">no sistema</div>
                     </div>
                 </div>
 
@@ -203,15 +194,6 @@
         <h2 class="text-[16px] font-semibold text-gray-900 mb-4">
             Assinaturas
         </h2>
-
-        {% if assinaturas_orfas %}
-        <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <strong>Referência pendente:</strong> existem {{ assinaturas_orfas|length }} assinatura(s) sem usuário correspondente em <code>Usuarios</code>.
-            {% for assinatura in assinaturas_orfas %}
-                <span class="ml-1">Usuário {{ assinatura.usuario_id }} (token {{ assinatura.token_id }})</span>{% if not forloop.last %},{% endif %}
-            {% endfor %}
-        </div>
-        {% endif %}
 
         <!-- BARRA DE AÇÕES -->
         <div class="flex items-center gap-4 mb-3">
@@ -335,7 +317,10 @@
                         </td>
                         <td class="text-center text-sm text-gray-900">{{ assinante.usuario.email }}</td>
                         <td class="text-center text-sm text-gray-900">{% if assinante.usuario.perfil_crianca %}Sim{% else %}Não{% endif %}</td>
-                        <td class="text-center text-sm font-medium text-emerald-600">Ativa</td>
+                                <td class="text-center text-sm font-medium {% if assinante.token %}text-emerald-600{% else %}text-amber-600{% endif %}">
+                                    <span class="block">{% if assinante.token %}Ativa{% else %}Sem token{% endif %}</span>
+                                    <span class="text-xs font-normal text-gray-500">R$ {{ mensalidade|floatformat:2 }}/mês</span>
+                                </td>
                         <td>
                                 <button type="button" title="Visualizar assinante" data-detalhe-url="{% url 'detalhar_usuario' assinante.usuario.id %}" onclick="abrirDetalhesUsuario(this.dataset.detalheUrl)"
                                     class="flex h-[34px] w-[34px] items-center justify-center rounded-lg bg-[#dfe2e4] hover:bg-gray-300">
@@ -397,9 +382,10 @@
                     <label class="grid gap-1 text-sm font-medium text-gray-700">Conta de pagamento <span class="font-normal text-gray-500">(opcional)</span>
                         <input name="pagamento_conta" value="{{ form_assinatura.pagamento_conta|default:'' }}" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]">
                     </label>
-                    <label class="grid gap-1 text-sm font-medium text-gray-700">Valor <span class="font-normal text-gray-500">(opcional)</span>
-                        <input name="valor" value="{{ form_assinatura.valor|default:'' }}" inputmode="decimal" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]" placeholder="Ex.: 99,90">
-                    </label>
+                    <div class="grid gap-1 text-sm font-medium text-gray-700">
+                        Valor mensal
+                        <div class="flex h-11 items-center rounded-lg border border-gray-300 bg-gray-50 px-3 text-gray-700">R$ {{ mensalidade|floatformat:2 }}</div>
+                    </div>
                 </div>
                 <div id="cadastro-crianca-campos" class="grid gap-4"></div>
                 <div class="grid gap-4 sm:grid-cols-2">

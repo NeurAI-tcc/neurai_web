@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 
 from django.contrib.auth.hashers import check_password, make_password
 from mongoengine import (
@@ -6,6 +7,7 @@ from mongoengine import (
     BinaryField,
     CASCADE,
     DateTimeField,
+    DecimalField,
     DictField,
     Document,
     EmbeddedDocument,
@@ -63,6 +65,14 @@ class PerfilCrianca(EmbeddedDocument):
 
 class Usuario(Document):
     TIPO_USUARIO = ('Responsavel', 'Admin')
+    ASSINATURA_PENDENTE = 'Pendente de aprovação'
+    ASSINATURA_APROVADA = 'Aprovada'
+    ASSINATURA_RECUSADA = 'Recusada'
+    STATUS_ASSINATURA = (
+        ASSINATURA_PENDENTE,
+        ASSINATURA_APROVADA,
+        ASSINATURA_RECUSADA,
+    )
 
     tipo_usuario = StringField(choices=TIPO_USUARIO, default='Responsavel', required=True)
     nome_completo = StringField(required=True, max_length=150)
@@ -71,6 +81,20 @@ class Usuario(Document):
     ip_camera = StringField()
     pagamento_conta = StringField()
     valor = FloatField()
+    status_assinatura = StringField(
+        choices=STATUS_ASSINATURA,
+        default=ASSINATURA_PENDENTE,
+    )
+    valor_mensal = DecimalField(
+        precision=2, rounding='ROUND_HALF_UP', default=Decimal('50.00'),
+    )
+    data_solicitacao = DateTimeField(default=datetime.utcnow)
+    inicio_cobranca = DateTimeField()
+    aprovada_em = DateTimeField()
+    recusada_em = DateTimeField()
+    aprovada_por = ReferenceField('Usuario')
+    motivo_recusa = StringField()
+    atualizada_em = DateTimeField(default=datetime.utcnow)
     perfil_crianca = EmbeddedDocumentField(PerfilCrianca)
     criado_em = DateTimeField(default=datetime.utcnow)
 
@@ -81,6 +105,38 @@ class Usuario(Document):
 
     def verificar_senha(self, senha):
         return check_password(senha, self.senha)
+
+
+class Pagamento(Document):
+    PENDENTE = 'Pendente'
+    PAGO = 'Pago'
+    ATRASADO = 'Atrasado'
+    STATUS = (PENDENTE, PAGO, ATRASADO)
+
+    usuario = ReferenceField(Usuario, required=True)
+    valor = DecimalField(
+        precision=2, rounding='ROUND_HALF_UP', default=Decimal('50.00'),
+        required=True,
+    )
+    mes_competencia = IntField(required=True, min_value=1, max_value=12)
+    ano_competencia = IntField(required=True, min_value=2000)
+    vencimento = DateTimeField(required=True)
+    pago_em = DateTimeField()
+    status = StringField(choices=STATUS, default=PENDENTE, required=True)
+    criado_em = DateTimeField(default=datetime.utcnow)
+    atualizado_em = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'collection': 'Pagamentos',
+        'indexes': [
+            {
+                'fields': ['usuario', 'ano_competencia', 'mes_competencia'],
+                'unique': True,
+            },
+            {'fields': ['status', '-vencimento']},
+            ['usuario', '-vencimento'],
+        ],
+    }
 
 
 class TokenAcesso(Document):

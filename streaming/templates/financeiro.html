@@ -136,7 +136,7 @@
                     <div>
                         <div class="text-[15px] leading-[14px] mt-[0px]">Receita do mês</div>
                         <div class="text-[35px] leading-[23px] mt-[12px]">R$ {{ receita|floatformat:2 }}</div>
-                        <div class="text-[12px] text-[#00a63c] mt-[10px]"> +{{ novos_usuarios }} este mês</div>
+                        <div class="text-[12px] text-[#00a63c] mt-[10px]">pagamentos confirmados neste mês</div>
                     </div>
                 </div>
 
@@ -149,7 +149,7 @@
                     </div>
                     <div>
                         <div class="text-[15px] leading-[14px] mt-[0px]">Pagamentos Confirmados (mês)</div>
-                        <div class="text-[35px] leading-[23px] mt-[12px]">{{ novos_usuarios }}</div>
+                        <div class="text-[35px] leading-[23px] mt-[12px]">{{ pagamentos_confirmados }}</div>
                     </div>
                 </div>
 
@@ -164,8 +164,8 @@
                     </div>
                     <div>
                         <div class="text-[10px] leading-[14px] mt-[0px]">Pagamentos Pendentes</div>
-                        <div class="text-[35px] leading-[23px] mt-[12px]">{{ assinaturas_ativas }}</div>
-                        <div class="text-[12px] text-[#00a63c] mt-[10px]">tokens ativos</div>
+                        <div class="text-[35px] leading-[23px] mt-[12px]">{{ pagamentos_pendentes }}</div>
+                        <div class="text-[12px] text-[#00a63c] mt-[10px]">{{ pagamentos_atrasados }} em atraso</div>
                     </div>
                 </div>
             </div>
@@ -182,66 +182,74 @@
     </h2>
 
     <!-- BARRA DE AÇÕES -->
-    <div class="mb-3 flex items-center gap-3">
+    <div class="mb-3 flex items-center gap-4">
 
         <!-- BUSCA -->
-        <form method="get" class="relative min-w-0 flex-1">
-            <input
-                type="search"
-                name="busca"
-                value="{{ busca|default:'' }}"
-                placeholder="Buscar por nome, e-mail ..."
-                class="h-[35px] w-full rounded-lg border border-gray-300
-                       px-3 pr-10 text-[12px] text-gray-700
-                       outline-none focus:border-[#36abc0]"
-            >
+        <div class="relative flex-1 max-w-[550px]">
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ busca }}"
+                    form="busca-assinantes"
+                    placeholder="Buscar por nome, e-mail ou IP...."
+                    class="w-full h-[52px] border border-gray-300 rounded-lg
+                           px-4 pr-12 text-sm text-gray-700
+                           outline-none focus:border-gray-400">
 
-            <button
-                type="submit"
-                aria-label="Pesquisar"
-                class="absolute right-3 top-1/2 -translate-y-1/2"
-            >
-                <svg class="h-4 w-4" viewBox="0 0 24 24"
-                     fill="none" stroke="currentColor"
-                     stroke-width="2" stroke-linecap="round">
-                    <circle cx="10.5" cy="10.5" r="6.5"/>
-                    <path d="m16 16 5 5"/>
+                <svg class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g clip-path="url(#clip0_342_1803)">
+                    <path d="M19.6353 17.8733L15.7663 14.0035C18.664 10.1339 17.8761 4.64803 14.0065 1.75041C10.137 -1.14721 4.65114 -0.359401 1.75349 3.51013C-1.14417 7.37967 -0.356277 12.8656 3.51325 15.7632C6.62212 18.0912 10.8933 18.0922 14.0033 15.7657L17.8739 19.6363C18.3603 20.1227 19.1489 20.1227 19.6353 19.6363C20.1217 19.1499 20.1217 18.3613 19.6353 17.8749V17.8733ZM8.79368 15.0186C5.3554 15.0186 2.56814 12.2314 2.56814 8.79307C2.56814 5.35478 5.35544 2.56752 8.79368 2.56752C12.2319 2.56752 15.0192 5.35478 15.0192 8.79307C15.0156 12.2298 12.2305 15.015 8.79368 15.0186Z" fill="black"/>
+                    </g>
+                    <defs>
+                    <clipPath id="clip0_342_1803">
+                    <rect width="20" height="20" fill="white"/>
+                    </clipPath>
+                    </defs>
                 </svg>
-            </button>
-        </form>
+
+            </div>
+
+            <form id="busca-assinantes" method="get" class="hidden"></form>
 
         <!-- EXPORTAR -->
-        <a
-            href="{% url 'exportar_receitas' %}"
-            class="flex h-[35px] shrink-0 items-center justify-center gap-2
-                   rounded-lg border border-gray-300 bg-white px-4
-                   text-[12px] text-gray-900 transition hover:bg-gray-50"
-        >
-            <svg class="h-3 w-3" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round"
-                 stroke-linejoin="round">
-                <path d="M12 3v12m-4-4 4 4 4-4"/>
-                <path d="M5 17v3h14v-3"/>
-            </svg>
-            Exportar
-        </a>
+        <a href="{% url 'exportar_receitas' %}"
+                class="h-[52px] px-6 border border-gray-300 rounded-lg
+                       bg-white flex items-center gap-2
+                       text-sm text-gray-900 hover:bg-gray-50">
 
-        <!-- NOVA ASSINATURA -->
-        <a
-            href="{% url 'assinantes' %}"
-            class="flex h-[35px] shrink-0 items-center gap-1 rounded-lg
-                   bg-[#3aa8bd] px-3 text-[12px] text-white
-                   transition hover:bg-[#329caf]"
-        >
-            <svg class="h-4 w-4" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 5v14M5 12h14"/>
-            </svg>
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g filter="url(#filter0_i_342_1816)">
+                    <g clip-path="url(#clip0_342_1816)">
+                    <path d="M5.53179 11.0625C6.63013 12.1609 8.41091 12.1609 9.50928 11.0625L9.50931 11.0625L11.5168 9.05499C11.8892 8.69528 11.8995 8.10179 11.5398 7.72937C11.1801 7.35694 10.5866 7.34663 10.2142 7.70634C10.2064 7.71387 10.1987 7.72157 10.1912 7.72937L8.45181 9.46811L8.43742 0.9375C8.43742 0.419736 8.01768 0 7.49992 0C6.98216 0 6.56242 0.419736 6.56242 0.9375L6.57555 9.45437L4.84993 7.72875C4.47751 7.36904 3.88401 7.37936 3.52431 7.75178C3.17342 8.11509 3.17342 8.69106 3.52431 9.05437L5.53179 11.0625Z" fill="black"/>
+                    <path d="M14.0625 9.0625C13.5447 9.0625 13.125 9.48224 13.125 10V12.8694C13.1246 13.0104 13.0104 13.1247 12.8694 13.125H2.13062C1.98958 13.1246 1.87532 13.0104 1.875 12.8694V10C1.875 9.48224 1.45526 9.0625 0.9375 9.0625C0.419736 9.0625 0 9.48224 0 10V12.8694C0.00137695 14.0455 0.954492 14.9986 2.13062 15H12.8694C14.0455 14.9986 14.9986 14.0455 15 12.8694V10C15 9.48224 14.5803 9.0625 14.0625 9.0625Z" fill="black"/>
+                    </g>
+                    </g>
+                    <defs>
+                    <filter id="filter0_i_342_1816" x="0" y="0" width="15" height="19" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                    <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+                    <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+                    <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                    <feOffset dy="4"/>
+                    <feGaussianBlur stdDeviation="2"/>
+                    <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+                    <feBlend mode="normal" in2="shape" result="effect1_innerShadow_342_1816"/>
+                    </filter>
+                    <clipPath id="clip0_342_1816">
+                    <rect width="15" height="15" fill="white"/>
+                    </clipPath>
+                    </defs>
+                </svg>
 
-            <span class="leading-3">
-                Nova<br>assinatura
-            </span>
+
+                Exportar
+            </a>
+
+        <!-- ATUALIZAR COBRANÇAS -->
+        <a href="{% url 'financeiro' %}"
+                class="h-[52px] px-4 rounded-lg bg-[#3aa8bd] text-white flex items-center gap-2 text-sm font-medium hover:bg-[#329caf]">
+            <span class="text-xl leading-none">↻</span>
+            <span class="leading-4">Atualizar cobranças</span>
         </a>
 
     </div>
@@ -249,29 +257,37 @@
     <!-- TABELA -->
     <div class="w-full overflow-x-auto">
 
-        <table class="w-full min-w-[580px] border-collapse">
+        <table class="w-full border-collapse">
 
             <!-- CABEÇALHO -->
             <thead>
-                <tr class="h-[28px] bg-[#d9d9d9]">
+                <tr class="h-[41px] bg-[#d9d9d9]">
 
-                    <th class="w-[25%] px-3 text-left text-[11px] font-medium text-gray-900">
-                        Neurodivergente
+                    <th class="text-center font-medium text-sm text-gray-900 w-[20%]">
+                        Responsável
                     </th>
 
-                    <th class="w-[30%] px-2 text-left text-[11px] font-medium text-gray-900">
-                        Forma de Pagamento
+                    <th class="text-center font-medium text-sm text-gray-900 w-[12%]">
+                        Competência
                     </th>
 
-                    <th class="w-[16%] px-2 text-left text-[11px] font-medium text-gray-900">
+                    <th class="text-center font-medium text-sm text-gray-900 w-[12%]">
                         Valor
                     </th>
 
-                    <th class="w-[17%] px-2 text-left text-[11px] font-medium text-gray-900">
+                    <th class="text-center font-medium text-sm text-gray-900 w-[12%]">
+                        Vencimento
+                    </th>
+
+                    <th class="text-center font-medium text-sm text-gray-900 w-[12%]">
+                        Pagamento
+                    </th>
+
+                    <th class="text-center font-medium text-sm text-gray-900 w-[12%]">
                         Status
                     </th>
 
-                    <th class="w-[12%]"></th>
+                    <th class="w-[9%]"></th>
 
                 </tr>
             </thead>
@@ -281,47 +297,62 @@
 
                 {% for assinatura in assinaturas %}
 
-                <tr class="h-[40px] border-b border-gray-50 transition hover:bg-gray-50">
+                <tr class="h-[72px] border-b border-gray-100 transition hover:bg-gray-50">
 
-                    <!-- NEURODIVERGENTE -->
+                    <!-- RESPONSÁVEL -->
                     <td class="px-1">
                         <div class="flex items-center gap-3">
 
-                            <div class="flex h-[28px] w-[28px] shrink-0 items-center
+                            <div class="flex h-[43px] w-[43px] shrink-0 items-center
                                         justify-center rounded-full bg-[#d1f0f2]
-                                        text-[11px] font-semibold text-[#167b8a]">
+                                        text-sm font-semibold text-[#167b8a]">
                                 {{ assinatura.nome|first|upper }}
                             </div>
 
-                            <span class="truncate text-[11px] text-gray-900">
+                            <span class="truncate text-sm text-gray-900">
                                 {{ assinatura.nome }}
                             </span>
 
                         </div>
                     </td>
 
-                    <!-- FORMA DE PAGAMENTO -->
-                    <td class="px-2 text-[11px] text-gray-900">
-                        {{ assinatura.forma_pagamento }}
+                    <!-- E-MAIL -->
+
+                    <!-- COMPETÊNCIA -->
+                    <td class="text-center text-sm text-gray-900">
+                        {{ assinatura.competencia }}
                     </td>
 
                     <!-- VALOR -->
-                    <td class="px-2 text-[11px] text-gray-900">
+                    <td class="text-center text-sm text-gray-900">
                         R$ {{ assinatura.valor|floatformat:2 }}
                     </td>
 
+                    <!-- VENCIMENTO -->
+                    <td class="text-center text-sm text-gray-900">
+                        {{ assinatura.vencimento|date:"d/m/Y" }}
+                    </td>
+
+                    <!-- PAGAMENTO -->
+                    <td class="text-center text-sm text-gray-900">
+                        {% if assinatura.pago_em %}{{ assinatura.pago_em|date:"d/m/Y" }}{% else %}-{% endif %}
+                    </td>
+
                     <!-- STATUS -->
-                    <td class="px-2">
-                        <div class="flex items-center gap-1.5">
+                    <td class="text-center">
+                        <div class="flex items-center justify-center gap-1.5">
 
                             {% if assinatura.status == 'Pago' %}
                                 <span class="h-[11px] w-[11px] shrink-0 rounded-full bg-[#159b39]"></span>
-                                <span class="text-[11px] text-[#159b39]">
+                                <span class="text-sm text-[#159b39]">
                                     Pago
                                 </span>
+                            {% elif assinatura.status == 'Atrasado' %}
+                                <span class="h-[11px] w-[11px] shrink-0 rounded-full bg-red-600"></span>
+                                <span class="text-sm text-red-700">Atrasado</span>
                             {% else %}
                                 <span class="h-[11px] w-[11px] shrink-0 rounded-full bg-[#e59a1b]"></span>
-                                <span class="text-[11px] text-[#d97706]">
+                                <span class="text-sm text-[#d97706]">
                                     Pendente
                                 </span>
                             {% endif %}
@@ -330,47 +361,30 @@
                     </td>
 
                     <!-- AÇÕES -->
-                    <td class="px-1">
-                        <div class="flex items-center justify-end gap-1">
-
-                            {% if assinatura.status == 'Pago' %}
-
-                            <button
-                                type="button"
-                                title="Editar assinatura"
-                                onclick="window.location.href='{% url 'detalhar_usuario' assinatura.id %}'"
-                                class="flex h-[23px] w-[23px] items-center
-                                       justify-center rounded-md bg-[#dfe2e4]
-                                       text-[#374957] hover:bg-gray-300"
-                            >
-                                <svg class="h-4 w-4" viewBox="0 0 24 24"
-                                     fill="none" stroke="currentColor"
-                                     stroke-width="2" stroke-linecap="round"
-                                     stroke-linejoin="round">
-                                    <path d="m16 4 4 4M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16l-1 4Z"/>
+                    <td>
+                        {% if assinatura.status != 'Pago' %}
+                        <form method="post" class="mb-1">
+                            {% csrf_token %}
+                            <input type="hidden" name="acao" value="confirmar_pagamento">
+                            <input type="hidden" name="pagamento_id" value="{{ assinatura.id }}">
+                            <button type="submit" class="whitespace-nowrap text-xs font-medium text-[#167b8a] hover:underline">Confirmar</button>
+                        </form>
+                        {% endif %}
+                         <button type="button" title="Visualizar assinante" data-detalhe-url="{% url 'detalhar_usuario' assinatura.usuario.id %}" onclick="abrirDetalhesUsuario(this.dataset.detalheUrl)"
+                                    class="flex h-[34px] w-[34px] items-center justify-center rounded-lg bg-[#dfe2e4] hover:bg-gray-300">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <g clip-path="url(#clip0_347_1904)">
+                                    <path d="M12 15.9982C14.2083 15.9982 15.9985 14.208 15.9985 11.9997C15.9985 9.79141 14.2083 8.00122 12 8.00122C9.79165 8.00122 8.00146 9.79141 8.00146 11.9997C8.00146 14.208 9.79165 15.9982 12 15.9982Z" fill="#374957"/>
+                                    <path d="M23.2669 9.41995C21.7164 6.89489 18.1897 2.65845 12 2.65845C5.81034 2.65845 2.28364 6.89489 0.733219 9.41995C-0.244325 11.0011 -0.244325 12.9989 0.733219 14.5801C2.28364 17.1051 5.81034 21.3416 12 21.3416C18.1897 21.3416 21.7164 17.1051 23.2669 14.5801C24.2444 12.9989 24.2444 11.0011 23.2669 9.41995ZM12 17.9978C8.68758 17.9978 6.00226 15.3124 6.00226 12C6.00226 8.68752 8.68758 6.00221 12 6.00221C15.3125 6.00221 17.9978 8.68752 17.9978 12C17.9945 15.3111 15.3111 17.9944 12 17.9978Z" fill="#374957"/>
+                                    </g>
+                                    <defs>
+                                    <clipPath id="clip0_347_1904">
+                                    <rect width="24" height="24" fill="white"/>
+                                    </clipPath>
+                                    </defs>
                                 </svg>
+
                             </button>
-
-                            {% endif %}
-
-                            <button
-                                type="button"
-                                title="Visualizar assinatura"
-                                onclick="window.location.href='{% url 'detalhar_usuario' assinatura.id %}'"
-                                class="flex h-[23px] w-[23px] items-center
-                                       justify-center rounded-md bg-[#dfe2e4]
-                                       text-[#374957] hover:bg-gray-300"
-                            >
-                                <svg class="h-4 w-4" viewBox="0 0 24 24"
-                                     fill="none" stroke="currentColor"
-                                     stroke-width="2" stroke-linecap="round"
-                                     stroke-linejoin="round">
-                                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/>
-                                    <circle cx="12" cy="12" r="3"/>
-                                </svg>
-                            </button>
-
-                        </div>
                     </td>
 
                 </tr>
@@ -378,8 +392,8 @@
                 {% empty %}
 
                 <tr>
-                    <td colspan="5" class="py-8 text-center text-sm text-gray-500">
-                        Nenhuma receita encontrada.
+                    <td colspan="8" class="py-8 text-center text-sm text-gray-500">
+                        Nenhum pagamento encontrado.
                     </td>
                 </tr>
 
@@ -393,20 +407,339 @@
 
 </div>
 
+    <div id="modal-cadastro" class="{% if not erro_assinatura %}hidden{% endif %} fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-[#082642]/60 px-4 py-4 sm:items-center sm:py-8">
+        <div class="my-auto max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:max-h-[calc(100vh-4rem)]">
+            <div class="mb-5 flex items-start justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">Adicionar assinatura</h2>
+                    <p class="mt-1 text-sm text-gray-500">Cadastre um responsável e gere seu acesso.</p>
+                </div>
+                <button type="button" onclick="document.getElementById('modal-cadastro').classList.add('hidden')" class="text-2xl leading-none text-gray-500" aria-label="Fechar">&times;</button>
+            </div>
+
+            {% if erro_assinatura %}
+            <div class="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ erro_assinatura }}</div>
+            {% endif %}
+
+            <form method="post" action="{% url 'assinantes' %}" enctype="multipart/form-data" class="grid gap-4">
+                {% csrf_token %}
+                <label class="grid gap-1 text-sm font-medium text-gray-700">Nome completo
+                    <input required name="nome_completo" value="{{ form_assinatura.nome_completo|default:'' }}" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]" autocomplete="name">
+                </label>
+                <label class="grid gap-1 text-sm font-medium text-gray-700">E-mail
+                    <input required type="email" name="email" value="{{ form_assinatura.email|default:'' }}" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]" autocomplete="email">
+                </label>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <label class="grid gap-1 text-sm font-medium text-gray-700">Conta de pagamento <span class="font-normal text-gray-500">(opcional)</span>
+                        <input name="pagamento_conta" value="{{ form_assinatura.pagamento_conta|default:'' }}" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]">
+                    </label>
+                    <div class="grid gap-1 text-sm font-medium text-gray-700">
+                        Valor mensal
+                        <div class="flex h-11 items-center rounded-lg border border-gray-300 bg-gray-50 px-3 text-gray-700">R$ {{ mensalidade|floatformat:2 }}</div>
+                    </div>
+                </div>
+                <div id="cadastro-crianca-campos" class="grid gap-4"></div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <label class="grid gap-1 text-sm font-medium text-gray-700">Senha
+                        <input required type="password" name="senha" minlength="8" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]" autocomplete="new-password">
+                    </label>
+                    <label class="grid gap-1 text-sm font-medium text-gray-700">Confirmar senha
+                        <input required type="password" name="confirmar_senha" minlength="8" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]" autocomplete="new-password">
+                    </label>
+                </div>
+                <div class="mt-2 flex justify-end gap-3">
+                    <button type="button" onclick="document.getElementById('modal-cadastro').classList.add('hidden')" class="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" class="rounded-lg bg-[#3aa8bd] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#329caf]">Salvar assinatura</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- VISUALIZAÇÃO DO USUÁRIO -->
+    <div id="modal-detalhes" class="hidden fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-[#082642]/60 px-4 py-4 sm:items-center sm:py-8">
+        <div class="my-auto max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:max-h-[calc(100vh-4rem)]">
+            <div class="mb-5 flex items-start justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">Perfil do responsável</h2>
+                    <p id="detalhes-status" class="mt-1 text-sm text-gray-500">Carregando informações...</p>
+                </div>
+                <button type="button" onclick="fecharDetalhesUsuario()" class="text-2xl leading-none text-gray-500" aria-label="Fechar">&times;</button>
+            </div>
+            <div id="detalhes-conteudo" class="grid gap-3 text-sm text-gray-700"></div>
+            <div id="detalhes-edicao" class="hidden grid gap-4 text-sm text-gray-700">
+                <label class="grid gap-1 font-medium">Nome completo
+                    <input id="editar-nome" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]">
+                </label>
+                <label class="grid gap-1 font-medium">E-mail
+                    <input id="editar-email" type="email" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]">
+                </label>
+                <label class="grid gap-1 font-medium">IP da câmera <span class="font-normal text-gray-500">(opcional)</span>
+                    <input id="editar-ip-camera" class="h-11 rounded-lg border border-gray-300 px-3 outline-none focus:border-[#36abc0]">
+                </label>
+                <div id="edicao-crianca-campos" class="grid gap-4"></div>
+            </div>
+            <div id="detalhes-acoes" class="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+                <button type="button" onclick="editarUsuario()" class="rounded-lg bg-[#3aa8bd] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#329caf]">Editar</button>
+                <button type="button" onclick="excluirUsuario()" class="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-700">Excluir</button>
+            </div>
+            <div id="edicao-acoes" class="hidden mt-6 justify-end gap-3 border-t border-gray-100 pt-4">
+                <button type="button" onclick="cancelarEdicao()" class="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
+                <button type="button" onclick="salvarEdicaoUsuario()" class="rounded-lg bg-[#3aa8bd] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#329caf]">Salvar alterações</button>
+            </div>
+        </div>
+    </div>
+
 
         </div>
 
 
         <!-- ONDAS: feitas apenas com classes Tailwind -->
         <div class="pointer-events-none fixed bottom-0 left-0 right-0 z-0 h-[145px] overflow-hidden">
-          <!-- imagem das ondas -->
-          <img src="{% static 'images/ondas.png' %}" alt="Ondas" class="absolute bottom-0 left-0 right-0 h-full w-full object-cover">
+            <!-- imagem das ondas -->
+            <img src="{% static 'images/ondas.png' %}" alt="Ondas" class="absolute bottom-0 left-0 right-0 h-full w-full object-cover">
 
         </div>
 
     </main>
 
 </div>
+
+    <script>
+    let usuarioDetalheUrl = '';
+    let usuarioDetalheDados = null;
+
+    const camposCrianca = [
+        {secao: 'Informações básicas', campos: [
+            ['nome_completo', 'Nome completo', 'text', true], ['nome_social', 'Nome social', 'text'],
+            ['data_nascimento', 'Data de nascimento', 'date'], ['sexo', 'Sexo', 'text'], ['foto_perfil', 'Foto de perfil', 'file'],
+        ]},
+        {secao: 'Diagnóstico', campos: [
+            ['diagnostico_principal', 'Diagnóstico principal', 'text'], ['nivel_suporte', 'Nível de suporte', 'text'],
+            ['data_diagnostico', 'Data do diagnóstico', 'date'], ['laudos_relatorios', 'Laudos e relatórios', 'file'],
+        ]},
+        {secao: 'Saúde', campos: [
+            ['condicoes_saude', 'Condições de saúde (separe por vírgulas)', 'text'], ['alergias', 'Alergias (separe por vírgulas)', 'text'],
+            ['usa_medicamentos', 'Usa medicamentos', 'checkbox'],
+            ['medicamentos', 'Medicamentos (JSON ou separe por vírgulas)', 'textarea'], ['possui_crises_epilepticas', 'Possui crises epilépticas', 'checkbox'],
+            ['frequencia_crises', 'Frequência das crises', 'text'],
+        ]},
+        {secao: 'Preferências e comportamentos', campos: [
+            ['atividades_favoritas', 'Atividades favoritas (separe por vírgulas)', 'text'], ['principais_gatilhos', 'Principais gatilhos (separe por vírgulas)', 'text'],
+            ['estrategias_acalmar', 'Estratégias para acalmar', 'textarea'], ['forma_comunicacao', 'Forma de comunicação', 'text'],
+        ]},
+        {secao: 'Rotina diária', campos: [
+            ['horario_acordar', 'Horário de acordar', 'time'], ['horario_dormir', 'Horário de dormir', 'time'],
+            ['faz_soneca', 'Faz soneca', 'checkbox'], ['alimentacao', 'Alimentação (separe por vírgulas)', 'text'],
+            ['possui_seletividade_alimentar', 'Possui seletividade alimentar', 'checkbox'], ['atividades_terapeuticas_escolares', 'Atividades terapêuticas/escolares', 'textarea'],
+        ]},
+        {secao: 'Informações adicionais', campos: [
+            ['observacoes', 'Observações', 'textarea'], ['contato_emergencia', 'Contato de emergência', 'text'], ['relacao_com_crianca', 'Relação com a criança', 'text'],
+        ]},
+        {secao: 'Reconhecimento facial', campos: [
+            ['foto_frente', 'Foto de frente', 'file'], ['foto_lado_direito', 'Foto do lado direito', 'file'],
+            ['foto_lado_esquerdo', 'Foto do lado esquerdo', 'file'], ['foto_cima', 'Foto de cima', 'file'],
+            ['foto_baixo', 'Foto de baixo', 'file'], ['foto_sorrindo', 'Foto sorrindo', 'file'],
+        ]},
+    ];
+
+    function renderizarCamposCrianca(containerId, prefix) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = camposCrianca.map(secao => `
+            <fieldset class="grid gap-3 rounded-lg border border-gray-200 p-3">
+                <legend class="px-1 text-sm font-semibold text-gray-900">${secao.secao}</legend>
+                <div class="grid gap-3 sm:grid-cols-2">
+                    ${secao.campos.map(([chave, rotulo, tipo, obrigatorio]) => {
+                        if (tipo === 'checkbox') {
+                            return `<label class="flex items-center gap-2 text-sm font-medium text-gray-700"><input type="checkbox" name="crianca_${chave}" class="h-4 w-4" data-crianca-campo="${chave}">${rotulo}</label>`;
+                        }
+                        const tag = tipo === 'textarea' ? 'textarea' : 'input';
+                        const extra = tipo === 'textarea' ? 'rows="2"' : `type="${tipo}"`;
+                        return `<label class="grid gap-1 text-sm font-medium text-gray-700">${rotulo}<${tag} ${extra} ${obrigatorio ? 'required' : ''} name="crianca_${chave}" data-crianca-campo="${chave}" class="rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-[#36abc0]"></${tag}></label>`;
+                    }).join('')}
+                </div>
+            </fieldset>
+        `).join('');
+    }
+
+    function preencherCamposCrianca(containerId, perfil) {
+        const valores = {};
+        if (perfil) Object.values(perfil).forEach(secao => Object.assign(valores, secao));
+        document.querySelectorAll(`#${containerId} [data-crianca-campo]`).forEach(campo => {
+            const valor = valores[campo.dataset.criancaCampo];
+
+            if (campo.type === 'file') {
+                campo.value = '';
+                return;
+            }
+
+            if (campo.type === 'checkbox') {
+                campo.checked = Boolean(valor);
+            } else if (Array.isArray(valor)) {
+                campo.value = campo.dataset.criancaCampo === 'medicamentos' ? JSON.stringify(valor) : valor.join(', ');
+            } else if (typeof valor === 'object' && valor !== null) {
+                campo.value = JSON.stringify(valor);
+            } else {
+                campo.value = valor || '';
+            }
+            if (campo.type === 'date' && campo.value) campo.value = campo.value.slice(0, 10);
+        });
+    }
+
+    function adicionarCamposCriancaAoFormData(formData) {
+        document.querySelectorAll('#edicao-crianca-campos [data-crianca-campo]').forEach(campo => {
+            if (campo.type === 'file') {
+                if (campo.files[0]) formData.append(campo.name, campo.files[0]);
+            } else {
+                formData.append(campo.name, campo.type === 'checkbox' ? (campo.checked ? 'on' : '') : campo.value);
+            }
+        });
+    }
+
+    function escaparHtml(valor) {
+        const elemento = document.createElement('span');
+        elemento.textContent = valor ?? '';
+        return elemento.innerHTML;
+    }
+
+    function formatarValor(valor) {
+        if (valor === null || valor === undefined || valor === '') return 'Não informado';
+        if (typeof valor === 'object') return JSON.stringify(valor);
+        return String(valor);
+    }
+
+    function renderizarPerfil(perfil) {
+        if (!perfil) {
+            return '<div class="rounded-lg bg-amber-50 px-4 py-3 text-amber-700">Nenhum perfil de criança vinculado.</div>';
+        }
+        return Object.entries(perfil).map(([secao, campos]) => `
+            <section class="rounded-lg border border-gray-100 p-3">
+                <h3 class="mb-2 font-semibold text-gray-900">${escaparHtml(secao.replaceAll('_', ' '))}</h3>
+                <div class="grid gap-2 sm:grid-cols-2">
+                    ${Object.entries(campos).map(([campo, valor]) => `
+                        <div class="rounded bg-gray-50 p-2">
+                            <span class="block text-xs text-gray-500">${escaparHtml(campo.replaceAll('_', ' '))}</span>
+                            <strong class="break-words">${escaparHtml(formatarValor(valor))}</strong>
+                        </div>
+                    `).join('')}
+                </div>
+            </section>
+        `).join('');
+    }
+
+    async function abrirDetalhesUsuario(url) {
+        const modal = document.getElementById('modal-detalhes');
+        const status = document.getElementById('detalhes-status');
+        const conteudo = document.getElementById('detalhes-conteudo');
+        modal.classList.remove('hidden');
+        usuarioDetalheUrl = url;
+        usuarioDetalheDados = null;
+        cancelarEdicao();
+        status.textContent = 'Carregando informações...';
+        conteudo.innerHTML = '';
+        document.getElementById('detalhes-acoes').classList.add('hidden');
+
+        try {
+            const resposta = await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+            const dados = await resposta.json();
+            if (!resposta.ok) {
+                throw new Error(dados.erro || 'Não foi possível carregar o usuário.');
+            }
+            usuarioDetalheDados = dados;
+            preencherCamposCrianca('edicao-crianca-campos', dados.perfil_crianca);
+            status.textContent = dados.email;
+            conteudo.innerHTML = `
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="rounded-lg bg-gray-50 p-3"><span class="block text-xs text-gray-500">Nome completo</span><strong>${escaparHtml(dados.nome_completo)}</strong></div>
+                    <div class="rounded-lg bg-gray-50 p-3"><span class="block text-xs text-gray-500">E-mail</span><strong class="break-words">${escaparHtml(dados.email)}</strong></div>
+                    <div class="rounded-lg bg-gray-50 p-3"><span class="block text-xs text-gray-500">Tipo de usuário</span><strong>${escaparHtml(dados.tipo_usuario)}</strong></div>
+                    <div class="rounded-lg bg-gray-50 p-3"><span class="block text-xs text-gray-500">Cadastro</span><strong>${escaparHtml(dados.criado_em)}</strong></div>
+                    <div class="rounded-lg bg-gray-50 p-3"><span class="block text-xs text-gray-500">ID</span><strong class="break-all">${escaparHtml(dados.id)}</strong></div>
+                </div>
+                <div class="rounded-lg border border-gray-100 p-3"><span class="block text-xs text-gray-500">IP da câmera</span><strong>${escaparHtml(dados.ip_camera)}</strong></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="rounded-lg border border-gray-100 p-3"><span class="block text-xs text-gray-500">Câmera</span><strong>${escaparHtml(dados.camera)}</strong></div>
+                    <div class="rounded-lg border border-gray-100 p-3"><span class="block text-xs text-gray-500">Assinatura</span><strong>${escaparHtml(dados.assinatura_ativa ? 'Ativa' : 'Não cadastrada')}</strong></div>
+                    <div class="rounded-lg border border-gray-100 p-3"><span class="block text-xs text-gray-500">Conta de pagamento</span><strong>${escaparHtml(dados.pagamento_conta)}</strong></div>
+                    <div class="rounded-lg border border-gray-100 p-3"><span class="block text-xs text-gray-500">Valor</span><strong>${escaparHtml(dados.valor === null ? 'Não informado' : 'R$ ' + Number(dados.valor).toFixed(2))}</strong></div>
+                </div>
+                <div class="grid gap-3">
+                    <h3 class="text-base font-semibold text-gray-900">Informações da criança</h3>
+                    ${renderizarPerfil(dados.perfil_crianca)}
+                </div>
+            `;
+            document.getElementById('detalhes-acoes').classList.remove('hidden');
+        } catch (erro) {
+            status.textContent = 'Erro';
+            conteudo.innerHTML = `<div class="rounded-lg bg-red-50 px-4 py-3 text-red-700">${escaparHtml(erro.message)}</div>`;
+        }
+    }
+
+    function editarUsuario() {
+        if (!usuarioDetalheDados) return;
+        document.getElementById('editar-nome').value = usuarioDetalheDados.nome_completo || '';
+        document.getElementById('editar-email').value = usuarioDetalheDados.email || '';
+        document.getElementById('editar-ip-camera').value = usuarioDetalheDados.ip_camera === 'Não informado' ? '' : (usuarioDetalheDados.ip_camera || '');
+        preencherCamposCrianca('edicao-crianca-campos', usuarioDetalheDados.perfil_crianca);
+        document.getElementById('detalhes-conteudo').classList.add('hidden');
+        document.getElementById('detalhes-acoes').classList.add('hidden');
+        document.getElementById('detalhes-edicao').classList.remove('hidden');
+        document.getElementById('edicao-acoes').classList.remove('hidden');
+    }
+
+    function cancelarEdicao() {
+        document.getElementById('detalhes-conteudo').classList.remove('hidden');
+        document.getElementById('detalhes-edicao').classList.add('hidden');
+        document.getElementById('detalhes-acoes').classList.remove('hidden');
+        document.getElementById('edicao-acoes').classList.add('hidden');
+    }
+
+    async function salvarEdicaoUsuario() {
+        const dados = new FormData();
+        dados.append('acao', 'editar');
+        dados.append('nome_completo', document.getElementById('editar-nome').value);
+        dados.append('email', document.getElementById('editar-email').value);
+        dados.append('ip_camera', document.getElementById('editar-ip-camera').value);
+        adicionarCamposCriancaAoFormData(dados);
+        await enviarAcaoUsuario(dados, 'Responsável atualizado com sucesso.');
+    }
+
+    async function excluirUsuario() {
+        if (!confirm('Tem certeza que deseja excluir este responsável e sua assinatura?')) return;
+        const dados = new FormData();
+        dados.append('acao', 'excluir');
+        const sucesso = await enviarAcaoUsuario(dados);
+        if (sucesso) window.location.reload();
+    }
+
+    async function enviarAcaoUsuario(dados, mensagemSucesso) {
+        const status = document.getElementById('detalhes-status');
+        const token = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        try {
+            const resposta = await fetch(usuarioDetalheUrl, {
+                method: 'POST',
+                headers: {'X-CSRFToken': token, 'X-Requested-With': 'XMLHttpRequest'},
+                body: dados,
+            });
+            const resultado = await resposta.json();
+            if (!resposta.ok) throw new Error(resultado.erro || 'Não foi possível concluir a ação.');
+            if (mensagemSucesso) {
+                await abrirDetalhesUsuario(usuarioDetalheUrl);
+                document.getElementById('detalhes-status').textContent = mensagemSucesso;
+            }
+            return true;
+        } catch (erro) {
+            status.textContent = erro.message;
+            return false;
+        }
+    }
+
+    function fecharDetalhesUsuario() {
+        document.getElementById('modal-detalhes').classList.add('hidden');
+    }
+
+    renderizarCamposCrianca('cadastro-crianca-campos', 'cadastro');
+    renderizarCamposCrianca('edicao-crianca-campos', 'edicao');
+</script>
 
 </body>
 </html>

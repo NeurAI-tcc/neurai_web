@@ -1,7 +1,9 @@
 import base64
 import binascii
+from calendar import monthrange
 import json
 import secrets
+from decimal import Decimal
 from io import BytesIO
 from datetime import datetime
 from functools import wraps
@@ -17,7 +19,15 @@ from django.shortcuts import redirect, render
 from django.utils.decorators import method_decorator
 from mongoengine.errors import NotUniqueError, ValidationError
 
-from .models import Usuario, TokenAcesso, Alerta, Camera, Relatorio, PerfilCrianca
+from .models import (
+    Alerta,
+    Camera,
+    Pagamento,
+    PerfilCrianca,
+    Relatorio,
+    TokenAcesso,
+    Usuario,
+)
 
 
 PERFIL_CRIANCA_CAMPOS = {
@@ -53,6 +63,8 @@ PERFIL_CRIANCA_CAMPOS = {
     'foto_sorrindo': 'foto_sorrindo_url',
 }
 
+MENSALIDADE = Decimal('50.00')
+
 
 def lista_do_formulario(valor):
     return [item.strip() for item in valor.split(',') if item.strip()]
@@ -73,6 +85,103 @@ def usuario_da_referencia(referencia):
         return Usuario.objects(id=usuario_id).first()
     except (ValidationError, ValueError):
         return None
+
+
+def assinatura_legada_do_usuario(usuario, token):
+    if token is None or usuario.status_assinatura != Usuario.ASSINATURA_PENDENTE:
+        return usuario
+    inicio = token.criado_em or datetime.utcnow()
+    usuario.status_assinatura = Usuario.ASSINATURA_APROVADA
+    usuario.valor_mensal = MENSALIDADE
+    usuario.data_solicitacao = usuario.data_solicitacao or inicio
+    usuario.inicio_cobranca = usuario.inicio_cobranca or inicio
+    usuario.aprovada_em = usuario.aprovada_em or inicio
+    usuario.atualizada_em = datetime.utcnow()
+    usuario.save()
+    return usuario
+
+
+def vencimento_da_competencia(inicio, ano, mes):
+    dia = min(inicio.day, monthrange(ano, mes)[1])
+    return datetime(ano, mes, dia)
+
+
+def gerar_pagamentos_da_assinatura(usuario, agora=None):
+    if usuario is None or usuario.status_assinatura != Usuario.ASSINATURA_APROVADA:
+        return []
+    inicio = usuario.inicio_cobranca
+    if inicio is None:
+        return []
+
+    agora = agora or datetime.utcnow()
+    pagamentos = []
+    ano = inicio.year
+    mes = inicio.month
+    while (ano, mes) <= (agora.year, agora.month):
+        vencimento = vencimento_da_competencia(inicio, ano, mes)
+        pagamento = Pagamento.objects(
+            usuario=usuario,
+            ano_competencia=ano,
+            mes_competencia=mes,
+        ).first()
+        if pagamento is None:
+            pagamento = Pagamento(
+                usuario=usuario,
+                valor=MENSALIDADE,
+                mes_competencia=mes,
+                ano_competencia=ano,
+                vencimento=vencimento,
+                status=Pagamento.PENDENTE,
+            )
+            try:
+                pagamento.save()
+            except NotUniqueError:
+                pagamento = Pagamento.objects(
+                    usuario=usuario,
+                    ano_competencia=ano,
+                    mes_competencia=mes,
+                ).first()
+        if pagamento is not None:
+            if pagamento.valor != MENSALIDADE:
+                pagamento.valor = MENSALIDADE
+            if pagamento.status != Pagamento.PAGO and agora > pagamento.vencimento:
+                pagamento.status = Pagamento.ATRASADO
+            pagamento.atualizado_em = agora
+            pagamento.save()
+            pagamentos.append(pagamento)
+
+        if mes == 12:
+            ano, mes = ano + 1, 1
+        else:
+            mes += 1
+    return pagamentos
+
+
+def garantir_token_da_assinatura(usuario):
+    token = TokenAcesso.objects(usuario=usuario).first()
+    if token is not None:
+        return token
+    try:
+        return TokenAcesso(
+            usuario=usuario,
+            chave=secrets.token_urlsafe(32),
+        ).save()
+    except NotUniqueError:
+        return TokenAcesso.objects(usuario=usuario).first()
+
+
+def gerar_pagamentos_ativos(agora=None):
+    agora = agora or datetime.utcnow()
+    assinaturas = []
+    for token in TokenAcesso.objects.no_dereference():
+        usuario = usuario_da_referencia(token.usuario)
+        if usuario is None:
+            continue
+        usuario = assinatura_legada_do_usuario(usuario, token)
+        if usuario.status_assinatura == Usuario.ASSINATURA_APROVADA:
+            gerar_pagamentos_da_assinatura(usuario, agora)
+            assinaturas.append(usuario)
+    return assinaturas
 
 
 def salvar_foto(arquivo):
@@ -295,9 +404,17 @@ def contexto_admin(admin_usuario=None):
     tokens = list(TokenAcesso.objects)
     relatorios = list(Relatorio.objects.order_by('-data_geracao'))
     perfis_completos = sum(1 for usuario in usuarios if usuario.perfil_crianca is not None)
-    receita = sum((usuario.valor or 0) for usuario in usuarios)
     mes_atual = datetime.utcnow().month
     ano_atual = datetime.utcnow().year
+    pagamentos_mes = Pagamento.objects(
+        ano_competencia=ano_atual,
+        mes_competencia=mes_atual,
+    )
+    receita = sum(
+        (pagamento.valor or Decimal('0'))
+        for pagamento in pagamentos_mes
+        if pagamento.status == Pagamento.PAGO
+    )
     novos_usuarios = sum(
         1 for usuario in usuarios
         if usuario.criado_em and usuario.criado_em.month == mes_atual
@@ -319,7 +436,7 @@ def contexto_admin(admin_usuario=None):
         'receita': receita,
         'total_alertas': len(alertas),
         'novos_usuarios': novos_usuarios,
-        'assinaturas_ativas': len(tokens),
+        'assinaturas_ativas': len(gerar_pagamentos_ativos()),
     }
 
 
@@ -464,8 +581,14 @@ def cadastro_api(request):
             return JsonResponse({'erro': 'E-mail já cadastrado'}, status=409)
         usuario = Usuario(nome_completo=dados['nome_completo'], email=email,
                           ip_camera=dados.get('ip_camera'),
-                          perfil_crianca=perfil_crianca)
+                          perfil_crianca=perfil_crianca,
+                          valor=float(MENSALIDADE))
         usuario.senha = make_password(dados['senha'])
+        usuario.save()
+        usuario.status_assinatura = Usuario.ASSINATURA_PENDENTE
+        usuario.valor_mensal = MENSALIDADE
+        usuario.data_solicitacao = datetime.utcnow()
+        usuario.atualizada_em = datetime.utcnow()
         usuario.save()
     except ValueError as erro:
         return JsonResponse({'erro': str(erro)}, status=400)
@@ -626,19 +749,25 @@ class DetalharUsuarioAdminView(View):
             return JsonResponse({'erro': 'Usuário não encontrado.'}, status=404)
 
         camera = Camera.objects(responsavel=usuario).first()
-        return JsonResponse({
+        dados_usuario = {
             'id': str(usuario.id),
             'nome_completo': usuario.nome_completo,
             'email': usuario.email,
             'tipo_usuario': usuario.tipo_usuario,
             'ip_camera': usuario.ip_camera or 'Não informado',
             'pagamento_conta': usuario.pagamento_conta or 'Não informado',
-            'valor': usuario.valor,
+            'valor': float(MENSALIDADE),
             'criado_em': usuario.criado_em.strftime('%d/%m/%Y %H:%M') if usuario.criado_em else 'Não informado',
             'assinatura_ativa': TokenAcesso.objects(usuario=usuario).first() is not None,
             'camera': camera.nome_camara if camera else 'Não cadastrada',
             'perfil_crianca': serializar_perfil_crianca(usuario.perfil_crianca),
-        })
+        }
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse(dados_usuario)
+
+        contexto = contexto_admin(request.admin_usuario)
+        contexto.update({'usuario_detalhado': dados_usuario})
+        return render(request, 'detalhar_usuario.html', contexto)
 
     def post(self, request, usuario_id):
         try:
@@ -728,7 +857,6 @@ class AssinantesAdminView(AdminTemplateView):
         senha = request.POST.get('senha', '')
         confirmar_senha = request.POST.get('confirmar_senha', '')
         pagamento_conta = request.POST.get('pagamento_conta', '').strip()
-        valor = request.POST.get('valor', '').strip()
         crianca_nome = request.POST.get('crianca_nome_completo', '').strip()
         erro = None
 
@@ -740,31 +868,28 @@ class AssinantesAdminView(AdminTemplateView):
             erro = 'Este e-mail já está cadastrado.'
         else:
             try:
-                valor_numerico = float(valor.replace(',', '.')) if valor else None
-            except ValueError:
-                valor_numerico = None
-                erro = 'O valor da assinatura é inválido.'
-
-            if erro is None:
-                try:
-                    perfil = perfil_crianca_do_formulario(request.POST, request.FILES)
-                    usuario = Usuario(
-                        nome_completo=nome,
-                        email=email,
-                        tipo_usuario='Responsavel',
-                        pagamento_conta=pagamento_conta or None,
-                        valor=valor_numerico,
-                        perfil_crianca=perfil,
-                    )
-                    usuario.senha = make_password(senha)
-                    usuario.save()
-                    TokenAcesso(usuario=usuario, chave=secrets.token_urlsafe(32)).save()
-                except ValueError as erro_perfil:
-                    erro = str(erro_perfil)
-                except NotUniqueError:
-                    erro = 'Este e-mail já está cadastrado.'
-                else:
-                    return redirect('assinantes')
+                perfil = perfil_crianca_do_formulario(request.POST, request.FILES)
+                usuario = Usuario(
+                    nome_completo=nome,
+                    email=email,
+                    tipo_usuario='Responsavel',
+                    pagamento_conta=pagamento_conta or None,
+                    valor=float(MENSALIDADE),
+                    perfil_crianca=perfil,
+                )
+                usuario.senha = make_password(senha)
+                usuario.save()
+                usuario.status_assinatura = Usuario.ASSINATURA_PENDENTE
+                usuario.valor_mensal = MENSALIDADE
+                usuario.data_solicitacao = datetime.utcnow()
+                usuario.atualizada_em = datetime.utcnow()
+                usuario.save()
+            except ValueError as erro_perfil:
+                erro = str(erro_perfil)
+            except NotUniqueError:
+                erro = 'Este e-mail já está cadastrado.'
+            else:
+                return redirect('assinantes')
 
         return self.render_page(request, {
             'erro_assinatura': erro,
@@ -772,53 +897,46 @@ class AssinantesAdminView(AdminTemplateView):
                 'nome_completo': nome,
                 'email': email,
                 'pagamento_conta': pagamento_conta,
-                'valor': valor,
+                'valor': MENSALIDADE,
                 'crianca_nome_completo': crianca_nome,
             },
         })
 
     def render_page(self, request, extra_context=None):
         contexto = contexto_admin(request.admin_usuario)
-        tokens = list(TokenAcesso.objects.no_dereference().order_by('-criado_em'))
         busca = request.GET.get('q', '').strip()
         termo = busca.casefold()
         assinantes = []
-        assinaturas_orfas = []
-        tokens_validos = []
-        for token in tokens:
-            usuario = usuario_da_referencia(token.usuario)
-            if usuario is None:
-                assinaturas_orfas.append({
-                    'token_id': str(token.id),
-                    'usuario_id': str(getattr(token.usuario, 'id', token.usuario)),
-                })
-                continue
-            tokens_validos.append(token)
+        responsaveis = Usuario.objects(tipo_usuario='Responsavel').order_by('-criado_em')
+        for usuario in responsaveis:
             if termo and not any(
                 termo in (valor or '').casefold()
                 for valor in (usuario.nome_completo, usuario.email, usuario.ip_camera)
             ):
                 continue
+            token = TokenAcesso.objects(usuario=usuario).first()
             assinantes.append({
                 'token': token,
                 'usuario': usuario,
                 'camera': Camera.objects(responsavel=usuario).first(),
+                'assinatura': usuario,
             })
 
         mes_atual = datetime.utcnow().month
         ano_atual = datetime.utcnow().year
         novas_assinaturas = sum(
-            1 for token in tokens_validos
-            if token.criado_em and token.criado_em.month == mes_atual
-            and token.criado_em.year == ano_atual
+            1 for usuario in responsaveis
+            if usuario.criado_em
+            and usuario.criado_em.month == mes_atual
+            and usuario.criado_em.year == ano_atual
         )
         contexto.update({
             'assinantes': assinantes,
-            'assinaturas_orfas': assinaturas_orfas,
             'busca': busca,
             'assinaturas_ativas': len(assinantes),
             'novas_assinaturas': novas_assinaturas,
-            'sem_assinatura': max(len(contexto['usuarios']) - len(assinantes), 0),
+            'sem_assinatura': sum(1 for assinante in assinantes if assinante['token'] is None),
+            'mensalidade': MENSALIDADE,
         })
         if extra_context:
             contexto.update(extra_context)
@@ -881,70 +999,117 @@ class FinanceiroAdminView(AdminTemplateView):
 
     def get(self, request):
         contexto = contexto_admin(request.admin_usuario)
-        busca = request.GET.get('busca', '').strip()
+        busca = request.GET.get('q', request.GET.get('busca', '')).strip()
         termo = busca.casefold()
-        tokens_por_usuario = {
-            str(getattr(token.usuario, 'id', token.usuario))
-            for token in TokenAcesso.objects.no_dereference()
-        }
-        assinaturas = []
-
-        for usuario in Usuario.objects(tipo_usuario='Responsavel').order_by('-criado_em'):
+        agora = datetime.utcnow()
+        gerar_pagamentos_ativos(agora)
+        pagamentos = []
+        for pagamento in Pagamento.objects.no_dereference().order_by('-vencimento'):
+            usuario = usuario_da_referencia(pagamento.usuario)
+            if usuario is None:
+                continue
             if termo and not any(
                 termo in (valor or '').casefold()
-                for valor in (usuario.nome_completo, usuario.email, usuario.pagamento_conta)
+                for valor in (
+                    usuario.nome_completo,
+                    usuario.email,
+                    usuario.pagamento_conta,
+                    f'{pagamento.mes_competencia:02d}/{pagamento.ano_competencia}',
+                    pagamento.status,
+                )
             ):
                 continue
-            assinaturas.append({
-                'id': str(usuario.id),
+            pagamentos.append({
+                'id': str(pagamento.id),
+                'usuario': usuario,
                 'nome': usuario.nome_completo,
                 'email': usuario.email,
                 'forma_pagamento': usuario.pagamento_conta or 'Não informado',
-                'valor': usuario.valor,
-                'status': 'Pago' if str(usuario.id) in tokens_por_usuario else 'Pendente',
+                'valor': MENSALIDADE,
+                'competencia': f'{pagamento.mes_competencia:02d}/{pagamento.ano_competencia}',
+                'vencimento': pagamento.vencimento,
+                'pago_em': pagamento.pago_em,
+                'status': pagamento.status,
             })
 
+        pagamentos_mes = [
+            pagamento for pagamento in pagamentos
+            if pagamento['competencia'] == f'{agora.month:02d}/{agora.year}'
+        ]
+
         contexto.update({
-            'assinaturas': assinaturas,
+            'pagamentos': pagamentos,
+            'assinaturas': pagamentos,
             'busca': busca,
-            'assinaturas_ativas': sum(
-                assinatura['status'] == 'Pago' for assinatura in assinaturas
+            'assinaturas_ativas': len(gerar_pagamentos_ativos(agora)),
+            'pagamentos_confirmados': sum(
+                pagamento['status'] == Pagamento.PAGO for pagamento in pagamentos_mes
             ),
+            'pagamentos_pendentes': sum(
+                pagamento['status'] == Pagamento.PENDENTE for pagamento in pagamentos_mes
+            ),
+            'pagamentos_atrasados': sum(
+                pagamento['status'] == Pagamento.ATRASADO for pagamento in pagamentos
+            ),
+            'receita': sum(
+                pagamento['valor'] for pagamento in pagamentos_mes
+                if pagamento['status'] == Pagamento.PAGO
+            ),
+            'mensalidade': MENSALIDADE,
         })
         return render(request, self.template_name, contexto)
+
+    def post(self, request):
+        if request.POST.get('acao') != 'confirmar_pagamento':
+            return redirect('financeiro')
+        try:
+            pagamento = Pagamento.objects.get(id=request.POST.get('pagamento_id'))
+        except (Pagamento.DoesNotExist, ValidationError, ValueError):
+            return redirect('financeiro')
+        if pagamento.status != Pagamento.PAGO:
+            pagamento.status = Pagamento.PAGO
+            pagamento.pago_em = datetime.utcnow()
+            pagamento.valor = MENSALIDADE
+            pagamento.atualizado_em = datetime.utcnow()
+            pagamento.save()
+        return redirect('financeiro')
 
 
 @method_decorator(administrador, name='dispatch')
 class ExportarReceitasAdminView(View):
     def get(self, request):
+        gerar_pagamentos_ativos()
         workbook = Workbook()
         worksheet = workbook.active
         worksheet.title = 'Receitas'
         worksheet.append([
-            'ID do usuário', 'Neurodivergente', 'E-mail',
-            'Forma de pagamento', 'Valor', 'Status',
+            'ID do pagamento', 'ID do usuário', 'Responsável', 'E-mail',
+            'Competência', 'Vencimento', 'Data do pagamento', 'Valor', 'Status',
         ])
 
-        tokens_por_usuario = {
-            str(getattr(token.usuario, 'id', token.usuario))
-            for token in TokenAcesso.objects.no_dereference()
-        }
         for celula in worksheet[1]:
             celula.font = Font(bold=True, color='FFFFFF')
             celula.fill = PatternFill('solid', fgColor='167B8A')
 
-        for usuario in Usuario.objects(tipo_usuario='Responsavel').order_by('-criado_em'):
+        for pagamento in Pagamento.objects.no_dereference().order_by('-vencimento'):
+            usuario = usuario_da_referencia(pagamento.usuario)
+            if usuario is None:
+                continue
             worksheet.append([
+                str(pagamento.id),
                 str(usuario.id),
                 usuario.nome_completo or '',
                 usuario.email or '',
-                usuario.pagamento_conta or 'Não informado',
-                usuario.valor if usuario.valor is not None else '',
-                'Pago' if str(usuario.id) in tokens_por_usuario else 'Pendente',
+                f'{pagamento.mes_competencia:02d}/{pagamento.ano_competencia}',
+                pagamento.vencimento.strftime('%d/%m/%Y') if pagamento.vencimento else '',
+                pagamento.pago_em.strftime('%d/%m/%Y') if pagamento.pago_em else '',
+                float(MENSALIDADE),
+                pagamento.status,
             ])
 
         for coluna, largura in {
-            'A': 26, 'B': 30, 'C': 34, 'D': 24, 'E': 14, 'F': 14,
+            'A': 26, 'B': 26, 'C': 30, 'D': 34, 'E': 14,
+            'F': 16, 'G': 18, 'H': 14, 'I': 14,
         }.items():
             worksheet.column_dimensions[coluna].width = largura
         worksheet.freeze_panes = 'A2'
