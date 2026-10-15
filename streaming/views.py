@@ -1123,5 +1123,5 @@ class ExportarReceitasAdminView(View):
         return resposta
 
 
-class CadastrosAdminView(AdminTemplateView):
-    template_name = 'cadastros.html'
+class CriancasAdminView(AdminTemplateView):
+    template_name = 'criancas.html'

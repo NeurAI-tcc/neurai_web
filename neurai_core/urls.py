@@ -40,7 +40,7 @@ urlpatterns = [
     path('relatorios/', views.RelatoriosAdminView.as_view(), name='relatorios'),
     path('financeiro/', views.FinanceiroAdminView.as_view(), name='financeiro'),
     path('financeiro/exportar/', views.ExportarReceitasAdminView.as_view(), name='exportar_receitas'),
-    path('cadastros/', views.CadastrosAdminView.as_view(), name='cadastros'),
+    path('criancas/', views.CriancasAdminView.as_view(), name='criancas'),
 ]
 
 if settings.DEBUG:
