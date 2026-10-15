@@ -29,6 +29,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+# Tamanho máximo do corpo da requisição: 50 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024
+
 
 # Application definition
 
