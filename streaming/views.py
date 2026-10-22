@@ -107,13 +107,25 @@ def vencimento_da_competencia(inicio, ano, mes):
 
 
 def gerar_pagamentos_da_assinatura(usuario, agora=None):
-    if usuario is None or usuario.status_assinatura != Usuario.ASSINATURA_APROVADA:
-        return []
-    inicio = usuario.inicio_cobranca
-    if inicio is None:
+    if usuario is None or usuario.perfil_crianca is None:
         return []
 
     agora = agora or datetime.utcnow()
+
+    inicio = (
+        usuario.inicio_cobranca
+        or usuario.data_solicitacao
+        or usuario.criado_em
+    )
+
+    if inicio is None:
+        inicio = agora
+
+    if usuario.inicio_cobranca is None:
+        usuario.inicio_cobranca = inicio
+        usuario.valor_mensal = MENSALIDADE
+        usuario.save()
+
     pagamentos = []
     ano = inicio.year
     mes = inicio.month
@@ -170,18 +182,24 @@ def garantir_token_da_assinatura(usuario):
         return TokenAcesso.objects(usuario=usuario).first()
 
 
+
 def gerar_pagamentos_ativos(agora=None):
     agora = agora or datetime.utcnow()
     assinaturas = []
-    for token in TokenAcesso.objects.no_dereference():
-        usuario = usuario_da_referencia(token.usuario)
-        if usuario is None:
+
+    responsaveis = Usuario.objects(
+        tipo_usuario='Responsavel'
+    )
+
+    for usuario in responsaveis:
+        if usuario.perfil_crianca is None:
             continue
-        usuario = assinatura_legada_do_usuario(usuario, token)
-        if usuario.status_assinatura == Usuario.ASSINATURA_APROVADA:
-            gerar_pagamentos_da_assinatura(usuario, agora)
-            assinaturas.append(usuario)
+
+        gerar_pagamentos_da_assinatura(usuario, agora)
+        assinaturas.append(usuario)
+
     return assinaturas
+
 
 
 def salvar_foto(arquivo):
@@ -1123,5 +1141,68 @@ class ExportarReceitasAdminView(View):
         return resposta
 
 
+
 class CriancasAdminView(AdminTemplateView):
     template_name = 'criancas.html'
+
+    def get(self, request):
+        contexto = contexto_admin(request.admin_usuario)
+        busca = request.GET.get('q', '').strip().casefold()
+        assinantes = []
+
+        responsaveis = Usuario.objects(
+            tipo_usuario='Responsavel'
+        )
+
+        hoje = datetime.utcnow().date()
+
+        for usuario in responsaveis:
+            crianca = usuario.perfil_crianca
+
+            if crianca is None:
+                continue
+
+            nome_crianca = crianca.nome_completo or ''
+            nome_responsavel = usuario.nome_completo or ''
+
+            if busca and busca not in nome_crianca.casefold() \
+                    and busca not in nome_responsavel.casefold() \
+                    and busca not in (usuario.email or '').casefold():
+                continue
+
+            idade = 'Não informada'
+            nascimento = crianca.data_nascimento
+
+            if nascimento:
+                nascimento = nascimento.date() if isinstance(
+                    nascimento, datetime
+                ) else nascimento
+
+                idade = hoje.year - nascimento.year
+
+                if (hoje.month, hoje.day) < (
+                    nascimento.month, nascimento.day
+                ):
+                    idade -= 1
+
+                idade = f'{idade} anos'
+
+            status = (
+                'Ativa'
+                if usuario.status_assinatura == Usuario.ASSINATURA_APROVADA
+                else 'Pendente'
+            )
+
+            assinantes.append({
+                'usuario': usuario,
+                'crianca': crianca,
+                'idade': idade,
+                'status': status,
+            })
+
+        contexto.update({
+            'assinantes': assinantes,
+            'busca': request.GET.get('q', '').strip(),
+        })
+
+        return render(request, self.template_name, contexto)
