@@ -515,7 +515,8 @@ def login_admin(request):
 
         if usuario is not None and usuario.verificar_senha(senha):
             request.session['admin_usuario_id'] = str(usuario.id)
-            return redirect(destino_admin(request.POST.get('next')))
+            destino = request.POST.get('next') or '/'
+            return redirect(destino_admin(destino))
         erro = 'E-mail ou senha inválidos.'
 
     return render(request, 'login.html', {

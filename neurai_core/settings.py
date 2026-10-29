@@ -13,10 +13,12 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 from mongoengine import connect
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv(BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -140,6 +142,13 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://192.168.0.34:27017/Neurai')
-connect(host=MONGODB_URI, alias='default')
+MONGODB_URI = os.getenv('MONGODB_URI')
+
+if not MONGODB_URI:
+    raise ValueError('A variável MONGODB_URI não foi configurada.')
+
+connect(
+    host=MONGODB_URI,
+    alias='default'
+)
 ADMIN_REGISTRATION_CODE = os.getenv('NEURAI_ADMIN_CODE', 'grupo06@')

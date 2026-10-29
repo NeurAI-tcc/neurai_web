@@ -6,14 +6,17 @@ import cv2
 import numpy as np
 from mongoengine.errors import DoesNotExist, ValidationError
 
-from .models import Camera, PerfilCrianca, Usuario
-
+from .models import PerfilCrianca, Usuario
 
 @dataclass
 class ContextoRastreamento:
     usuario: Usuario
-    camera: Camera
     perfil: PerfilCrianca
+
+    @property
+    def ip_camera(self):
+        return self.usuario.ip_camera
+
 
 
 def buscar_usuario_para_rastreamento(usuario_id=None, email=None):
@@ -29,24 +32,28 @@ def buscar_usuario_para_rastreamento(usuario_id=None, email=None):
         raise LookupError("Usuário não encontrado") from exc
 
 
-def buscar_contexto_rastreamento(usuario_id=None, email=None, camera_id=None):
-    """Carrega usuário, perfil da criança e câmera autorizada."""
-    usuario = buscar_usuario_para_rastreamento(usuario_id=usuario_id, email=email)
+def buscar_contexto_rastreamento(
+    usuario_id=None,
+    email=None,
+    camera_id=None,
+):
+    usuario = buscar_usuario_para_rastreamento(
+        usuario_id=usuario_id,
+        email=email,
+    )
 
-    if usuario.perfil_crianca is None:
-        raise ValueError("Usuário não possui perfil da criança")
+    if not usuario.perfil_crianca:
+        raise ValueError(
+            'O usuário não possui um perfil de criança cadastrado.'
+        )
 
-    try:
-        if camera_id:
-            camera = Camera.objects.get(id=camera_id, responsavel=usuario)
-        else:
-            camera = Camera.objects.get(responsavel=usuario)
-    except (Camera.DoesNotExist, ValidationError) as exc:
-        raise LookupError("Câmera não encontrada para este usuário") from exc
+    if not usuario.ip_camera:
+        raise ValueError(
+            'O usuário não possui um endereço IP de câmera cadastrado.'
+        )
 
     return ContextoRastreamento(
         usuario=usuario,
-        camera=camera,
         perfil=usuario.perfil_crianca,
     )
 
@@ -153,11 +160,11 @@ def iniciar_rastreamento(
         raise ValueError('Nenhuma foto facial válida no perfil da criança')
 
     yolo = YOLO('yolov8n.pt')
-    captura = cv2.VideoCapture(contexto.camera.endereco_ip)
+    captura = cv2.VideoCapture(contexto.ip_camera)
     if not captura.isOpened():
         captura.release()
         raise ConnectionError(
-            f'Não foi possível abrir a câmera em {contexto.camera.endereco_ip}'
+            f'Não foi possível abrir a câmera em {contexto.ip_camera}'
         )
 
     stop_event = stop_event or __import__('threading').Event()
@@ -262,7 +269,7 @@ def iniciar_rastreamento(
             if on_frame:
                 on_frame(frame, {
                     'usuario_id': str(contexto.usuario.id),
-                    'camera_id': str(contexto.camera.id),
+                    'camera_id': camera_id or str(contexto.usuario.id),
                     'target_id': target_id,
                 })
     finally:
